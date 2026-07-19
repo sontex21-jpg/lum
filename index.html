@@ -2,7 +2,14 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b0b1a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Lüm">
+<!-- PWA manifest, tek dosya dağıtımı için data-URI olarak gömülü (ana ekrana eklenebilir). -->
+<link rel="manifest" href='data:application/manifest+json,{"name":"Lüm: Işık Koşusu","short_name":"Lüm","start_url":".","display":"fullscreen","orientation":"portrait","background_color":"%230b0b1a","theme_color":"%230b0b1a","icons":[{"src":"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 192 192%22%3E%3Crect width=%22192%22 height=%22192%22 fill=%22%231a1a3e%22/%3E%3Ccircle cx=%2296%22 cy=%2296%22 r=%2255%22 fill=%22%23FF6E3C%22/%3E%3Ccircle cx=%2296%22 cy=%2296%22 r=%2238%22 fill=%22%23FFB84D%22/%3E%3C/svg%3E","sizes":"192x192","type":"image/svg+xml"}]}'>
 <title>Lüm: Işık Koşusu — Prototip</title>
 <style>
   html, body {
@@ -10,6 +17,7 @@
     background: #0b0b1a;
     height: 100%; width: 100%;
     touch-action: none;
+    overscroll-behavior: none;
     font-family: -apple-system, 'Segoe UI', sans-serif;
   }
   #gameCanvas {
@@ -17,24 +25,100 @@
     width: 100vw;
     height: 100vh;
     background: #1a1a3e;
+    touch-action: none;
+    overscroll-behavior: none;
   }
   #hud {
     position: fixed; top: 0; left: 0; right: 0;
-    padding: 14px 18px;
+    padding: calc(14px + env(safe-area-inset-top, 0px)) 18px 14px;
     color: white;
     font-size: 16px;
     font-weight: 700;
     text-shadow: 0 2px 4px rgba(0,0,0,0.4);
-    display: flex; justify-content: space-between;
+    display: flex; justify-content: space-between; align-items: center;
     pointer-events: none;
   }
-  #magnetBanner {
-    position: fixed; top: 54px; left: 50%; transform: translateX(-50%);
-    background: rgba(80,140,255,0.9); color: white; font-weight: 800;
-    padding: 6px 16px; border-radius: 20px; font-size: 14px;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.3);
-    pointer-events: none; transition: opacity 0.2s;
+  #hud .hudRight { display: flex; align-items: center; gap: 10px; pointer-events: auto; }
+  #hud .hudLeft { display: flex; align-items: baseline; gap: 12px; }
+  #hud .distBig { font-size: 20px; font-weight: 800; }
+  #hud .scoreSmall, #hud .livesSmall { font-size: 13px; opacity: 0.85; font-weight: 700; }
+  #soundBtn, #pauseBtn, #shakeBtn {
+    pointer-events: auto;
+    background: rgba(0,0,0,0.25);
+    border: none; border-radius: 50%;
+    width: 34px; height: 34px;
+    font-size: 16px; color: white;
+    display: flex; align-items: center; justify-content: center;
   }
+  #statusStack {
+    position: fixed; top: calc(56px + env(safe-area-inset-top, 0px)); right: 12px;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+    pointer-events: none; z-index: 5; max-width: 62vw;
+  }
+  #magnetBanner {
+    background: rgba(80,140,255,0.92); color: white; font-weight: 800;
+    padding: 6px 14px; border-radius: 20px; font-size: 13px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+    transition: opacity 0.2s; white-space: nowrap;
+  }
+  #comboBanner {
+    background: rgba(255,140,20,0.92); color: white; font-weight: 800;
+    padding: 4px 14px; border-radius: 18px; font-size: 13px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+    transition: opacity 0.2s; white-space: nowrap;
+  }
+  #tutorialBanner {
+    position: fixed; top: calc(62px + env(safe-area-inset-top, 0px)); left: 12px; right: auto; transform: none;
+    background: rgba(20,20,40,0.88); color: white; font-weight: 700;
+    padding: 10px 16px; border-radius: 16px; font-size: 13px;
+    max-width: 46vw; text-align: left; line-height: 1.4;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+    pointer-events: none; transition: opacity 0.3s;
+  }
+  #achievementBanner {
+    background: rgba(255,217,61,0.96); color: #2a2005; font-weight: 800;
+    padding: 8px 16px; border-radius: 18px; font-size: 12px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+    transition: opacity 0.25s; white-space: nowrap;
+    display: flex; align-items: center; gap: 6px;
+  }
+  #biomeBanner {
+    background: rgba(30,30,50,0.9); color: #FFD93D; font-weight: 800;
+    padding: 8px 16px; border-radius: 18px; font-size: 13px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+    transition: opacity 0.3s; white-space: nowrap;
+  }
+  #dailyBonusModal, #previewModal {
+    position: fixed; inset: 0; z-index: 50;
+    background: rgba(5,5,15,0.75);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .modalCard {
+    background: #191933; color: white; border-radius: 20px;
+    padding: 24px 26px; text-align: center; max-width: 300px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+  .modalCard .bigIcon { font-size: 54px; margin-bottom: 8px; }
+  .modalCard h3 { margin: 0 0 6px; font-size: 18px; }
+  .modalCard p { font-size: 14px; opacity: 0.85; margin: 0 0 14px; }
+  .achList { display: flex; flex-direction: column; gap: 8px; max-width: 320px; max-height: 46vh; overflow-y: auto; margin-bottom: 6px; }
+  .achRow {
+    display: flex; align-items: center; gap: 10px; text-align: left;
+    background: rgba(255,255,255,0.06); border-radius: 12px; padding: 8px 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .achRow.locked { opacity: 0.45; }
+  .achRow .achIcon { font-size: 22px; width: 28px; text-align: center; }
+  .achRow .achText { flex: 1; }
+  .achRow .achTitle { font-size: 13px; font-weight: 700; }
+  .achRow .achDesc { font-size: 11px; opacity: 0.8; }
+  .achRow .achReward { font-size: 11px; color: #FFD93D; font-weight: 700; white-space: nowrap; }
+  .statRow {
+    display: flex; justify-content: space-between; width: 100%; max-width: 300px;
+    background: rgba(255,255,255,0.06); border-radius: 10px; padding: 8px 14px;
+    font-size: 13px; margin-bottom: 6px;
+  }
+  .statRow b { color: #FFD93D; }
   #panel {
     position: fixed; inset: 0;
     background: rgba(10,10,25,0.92);
@@ -94,34 +178,71 @@
   .shopItem.locked { opacity: 0.55; }
   .shopItem .cost { font-size: 10px; color: #FFD93D; font-weight: 700; }
   .shopItem .check { position: absolute; top: 3px; right: 6px; font-size: 12px; }
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    height: 8px; border-radius: 5px; background: rgba(255,255,255,0.2); outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 24px; height: 24px; border-radius: 50%; background: #FFD93D; cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 24px; height: 24px; border: none; border-radius: 50%; background: #FFD93D; cursor: pointer;
+  }
 </style>
 </head>
 <body>
 
 <canvas id="gameCanvas"></canvas>
 
-<div id="hud">
-  <div>⭐ <span id="scoreVal">0</span></div>
-  <div>❤️ <span id="livesVal">3</span></div>
-  <div>📏 <span id="distVal">0</span>m</div>
+<div id="hud" class="hidden">
+  <div class="hudLeft">
+    <span class="distBig">📏 <span id="distVal">0</span>m</span>
+    <span class="scoreSmall">⭐ <span id="scoreVal">0</span></span>
+    <span class="livesSmall">❤️ <span id="livesVal">3</span></span>
+    <span class="livesSmall" id="chargesRow">🪽 <span id="chargesVal">0</span></span>
+  </div>
+  <div class="hudRight">
+    <button id="shakeBtn" title="Sarsıntıyı Aç/Kapat">🫨</button>
+    <button id="soundBtn" title="Sesi Aç/Kapat">🔊</button>
+    <button id="pauseBtn" title="Duraklat">⏸️</button>
+  </div>
 </div>
-<div id="magnetBanner" class="hidden">🧲 MIKNATIS AKTİF!</div>
+<div id="statusStack">
+  <div id="biomeBanner" class="hidden"></div>
+  <div id="magnetBanner" class="hidden">🧲 MIKNATIS AKTİF!</div>
+  <div id="comboBanner" class="hidden">🔥 KOMBO x1</div>
+  <div id="achievementBanner" class="hidden">🏆 <span id="achievementText"></span></div>
+</div>
+<div id="tutorialBanner" class="hidden">👆 Kısa dokun = kısa zıpla, basılı tut = yüksek zıpla!</div>
 
 <div id="tuning"></div>
 
 <div id="panel">
   <div id="mainMenu">
     <h1>🎮 Lüm: Işık Koşusu</h1>
-    <p>
-      Ekrana <b>dokun</b> (veya tıkla) — Lüm zıplar.<br>
-      Kısa dokunuş = kısa zıplama, basılı tut = yüksek zıplama.<br>
-      🧲 mıknatısı al, gökyüzündeki yıldızları kendine çek!
-    </p>
+    <p id="menuInfo"></p>
     <div class="currencyRow">💰 <span id="menuCurrency">0</span></div>
     <div id="bestRow" style="font-size:13px;opacity:0.75;margin-bottom:4px;">🏆 En iyi: <span id="bestDistVal">0</span>m &nbsp;/&nbsp; <span id="bestScoreVal">0</span>⭐</div>
     <div class="menuBtnRow">
       <button id="startBtn" class="primaryBtn">BAŞLA</button>
+      <button id="howBtn" class="secondaryBtn">❓ Nasıl Oynanır</button>
+      <button id="powerBtn" class="secondaryBtn">⚡ Güçlendirmeler</button>
       <button id="shopBtn" class="secondaryBtn">🎨 Özelleştir</button>
+      <button id="achBtn" class="secondaryBtn">🏆 Başarımlar</button>
+      <button id="statsBtn" class="secondaryBtn">📊 İstatistikler</button>
+      <button id="settingsBtn" class="secondaryBtn">⚙️ Ayarlar</button>
+    </div>
+    <button id="shareBtn" class="secondaryBtn hidden">📤 Skoru Paylaş</button>
+    <button id="gameOverPowerBtn" class="secondaryBtn hidden">⚡ Güçlendirme Al</button>
+  </div>
+
+  <div id="pauseMenu" class="hidden">
+    <h2>⏸️ Duraklatıldı</h2>
+    <div class="menuBtnRow">
+      <button id="resumeBtn" class="primaryBtn">DEVAM ET</button>
+      <button id="quitBtn" class="secondaryBtn">Ana Menü</button>
     </div>
   </div>
 
@@ -137,6 +258,76 @@
 
     <button id="backBtn" class="secondaryBtn">‹ Geri</button>
   </div>
+
+  <div id="settingsMenu" class="hidden">
+    <h2>⚙️ Ayarlar</h2>
+    <div style="width:100%;max-width:300px;display:flex;flex-direction:column;gap:14px;margin:10px 0;">
+      <div class="statRow" style="flex-direction:column;align-items:stretch;gap:8px;">
+        <span>🔊 Ses Seviyesi: <b id="volLabel">70%</b></span>
+        <input id="volSlider" type="range" min="0" max="100" value="70" style="width:100%;">
+      </div>
+      <button id="toggleSoundBtn" class="secondaryBtn" style="margin-top:0;">🔊 Ses: Açık</button>
+      <button id="toggleVibrateBtn" class="secondaryBtn" style="margin-top:0;">📳 Titreşim: Açık</button>
+      <button id="toggleShakeBtn" class="secondaryBtn" style="margin-top:0;">🫨 Ekran Sarsıntısı: Açık</button>
+    </div>
+    <button id="settingsBackBtn" class="secondaryBtn">‹ Geri</button>
+  </div>
+
+  <div id="howMenu" class="hidden">
+    <h2>❓ Nasıl Oynanır</h2>
+    <div class="achList" style="max-width:340px;">
+      <div class="achRow"><span class="achIcon">👆</span><span class="achText"><span class="achTitle">Zıplama</span><br><span class="achDesc">Kısa dokun = kısa zıplama. Basılı tut = daha yüksek zıplama (üstteki bar dolar).</span></span></div>
+      <div class="achRow"><span class="achIcon">🪽</span><span class="achText"><span class="achTitle">Acil Zıplama</span><br><span class="achDesc">Havadayken art arda 2 kez hızlı dokun. Stok harcar, kısa dokunulmazlık verir. Yerdeki zıplamalar stok harcamaz!</span></span></div>
+      <div class="achRow"><span class="achIcon">⭐</span><span class="achText"><span class="achTitle">Yıldızlar</span><br><span class="achDesc">Sarı yıldız = 10 puan, büyük turuncu 🌟 = 50 puan. Hepsi para (💰) olarak birikir.</span></span></div>
+      <div class="achRow"><span class="achIcon">🔥</span><span class="achText"><span class="achTitle">Kombo</span><br><span class="achDesc">Yıldızları hızlı art arda topla, çarpan x4'e kadar çıkar. Ara verirsen yarıya iner.</span></span></div>
+      <div class="achRow"><span class="achIcon">🧲</span><span class="achText"><span class="achTitle">Mıknatıs</span><br><span class="achDesc">Al ve gökyüzündeki kırmızı yıldızlar sana çekilsin (3.5 sn).</span></span></div>
+      <div class="achRow"><span class="achIcon">🛡️</span><span class="achText"><span class="achTitle">Kalkan</span><br><span class="achDesc">Bir sonraki hasarı canın yerine kalkan yer.</span></span></div>
+      <div class="achRow"><span class="achIcon">⚡</span><span class="achText"><span class="achTitle">Hızlanma</span><br><span class="achDesc">Kısa süreliğine çok daha hızlı koşarsın — daha çok mesafe!</span></span></div>
+      <div class="achRow"><span class="achIcon">⚠️</span><span class="achText"><span class="achTitle">Tehlikeler</span><br><span class="achDesc">Boşluklar, dikenler ve devriye gezen 🤖 robotlar. Robotun KAFASINA zıplarsan onu ezersin (+puan, seni sektirir); yandan çarparsan can gider. 3 canın var!</span></span></div>
+      <div class="achRow"><span class="achIcon">🔺</span><span class="achText"><span class="achTitle">Geniş Diken</span><br><span class="achDesc">Kırmızımsı çift diken. Uzun/yüksek zıplama gerektirir (basılı tut).</span></span></div>
+      <div class="achRow"><span class="achIcon">💣</span><span class="achText"><span class="achTitle">Zıplayan Mayın</span><br><span class="achDesc">İnip kalkan dikenli top. Zamanlamaya dikkat ederek üstünden geç.</span></span></div>
+      <div class="achRow"><span class="achIcon">💰</span><span class="achText"><span class="achTitle">Mağazalar</span><br><span class="achDesc">Yıldızlarla Güçlendirmeler'den koşu başı avantaj al, Özelleştir'den görünüm ve hava durumu aç.</span></span></div>
+    </div>
+    <button id="howBackBtn" class="secondaryBtn">‹ Geri</button>
+  </div>
+
+  <div id="powerMenu" class="hidden">
+    <h2>⚡ Güçlendirmeler</h2>
+    <p style="font-size:13px;opacity:0.75;margin:0 0 4px;">Satın aldıkların bir sonraki koşunun <b>başında</b> otomatik uygulanır. Stoklanabilir!</p>
+    <div class="currencyRow">💰 <span id="powerCurrency">0</span></div>
+    <div id="powerGrid" class="shopGrid"></div>
+    <button id="powerBackBtn" class="secondaryBtn">‹ Geri</button>
+  </div>
+
+  <div id="achMenu" class="hidden">
+    <h2>🏆 Başarımlar</h2>
+    <div id="achList" class="achList"></div>
+    <button id="achBackBtn" class="secondaryBtn">‹ Geri</button>
+  </div>
+
+  <div id="statsMenu" class="hidden">
+    <h2>📊 İstatistikler</h2>
+    <div id="statsList" style="width:100%; display:flex; flex-direction:column; align-items:center;"></div>
+    <button id="statsBackBtn" class="secondaryBtn">‹ Geri</button>
+  </div>
+</div>
+
+<div id="dailyBonusModal" class="hidden">
+  <div class="modalCard">
+    <div class="bigIcon">🎁</div>
+    <h3>Günlük Bonus!</h3>
+    <p id="dailyBonusText">Bugün ilk girişin için yıldız kazandın.</p>
+    <button id="dailyBonusCloseBtn" class="primaryBtn">Harika!</button>
+  </div>
+</div>
+
+<div id="previewModal" class="hidden">
+  <div class="modalCard">
+    <div class="bigIcon" id="previewIcon">🔥</div>
+    <h3 id="previewTitle">Önizleme</h3>
+    <p id="previewText">Açmak için daha fazla yıldız topla.</p>
+    <button id="previewCloseBtn" class="secondaryBtn">Kapat</button>
+  </div>
 </div>
 
 <script>
@@ -146,22 +337,107 @@
   const panel = document.getElementById('panel');
   const mainMenu = document.getElementById('mainMenu');
   const shopMenu = document.getElementById('shopMenu');
+  const pauseMenu = document.getElementById('pauseMenu');
   const startBtn = document.getElementById('startBtn');
   const shopBtn = document.getElementById('shopBtn');
   const backBtn = document.getElementById('backBtn');
+  const soundBtn = document.getElementById('soundBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const resumeBtn = document.getElementById('resumeBtn');
+  const quitBtn = document.getElementById('quitBtn');
   const scoreEl = document.getElementById('scoreVal');
   const livesEl = document.getElementById('livesVal');
+  const chargesEl = document.getElementById('chargesVal');
   const distEl = document.getElementById('distVal');
   const tuningEl = document.getElementById('tuning');
   const magnetBanner = document.getElementById('magnetBanner');
+  const comboBanner = document.getElementById('comboBanner');
+  const tutorialBanner = document.getElementById('tutorialBanner');
+  const achievementBanner = document.getElementById('achievementBanner');
+  const achievementText = document.getElementById('achievementText');
+  const biomeBanner = document.getElementById('biomeBanner');
   const menuCurrencyEl = document.getElementById('menuCurrency');
   const shopCurrencyEl = document.getElementById('shopCurrency');
   const weatherGrid = document.getElementById('weatherGrid');
   const skinGrid = document.getElementById('skinGrid');
   const bestDistVal = document.getElementById('bestDistVal');
   const bestScoreVal = document.getElementById('bestScoreVal');
+  const shakeBtn = document.getElementById('shakeBtn');
+  const shareBtn = document.getElementById('shareBtn');
+  const achBtn = document.getElementById('achBtn');
+  const achBackBtn = document.getElementById('achBackBtn');
+  const achMenu = document.getElementById('achMenu');
+  const achList = document.getElementById('achList');
+  const statsBtn = document.getElementById('statsBtn');
+  const statsBackBtn = document.getElementById('statsBackBtn');
+  const statsMenu = document.getElementById('statsMenu');
+  const statsList = document.getElementById('statsList');
+  const powerBtn = document.getElementById('powerBtn');
+  const powerBackBtn = document.getElementById('powerBackBtn');
+  const powerMenu = document.getElementById('powerMenu');
+  const powerGrid = document.getElementById('powerGrid');
+  const powerCurrencyEl = document.getElementById('powerCurrency');
+  const howBtn = document.getElementById('howBtn');
+  const howBackBtn = document.getElementById('howBackBtn');
+  const howMenu = document.getElementById('howMenu');
+  const hudEl = document.getElementById('hud');
+  const gameOverPowerBtn = document.getElementById('gameOverPowerBtn');
+  const settingsBtn = document.getElementById('settingsBtn');
+  const settingsBackBtn = document.getElementById('settingsBackBtn');
+  const settingsMenu = document.getElementById('settingsMenu');
+  const volSlider = document.getElementById('volSlider');
+  const volLabel = document.getElementById('volLabel');
+  const toggleSoundBtn = document.getElementById('toggleSoundBtn');
+  const toggleVibrateBtn = document.getElementById('toggleVibrateBtn');
+  const toggleShakeBtn = document.getElementById('toggleShakeBtn');
+
+  function refreshSettingsUI() {
+    volSlider.value = Math.round((meta.volume !== undefined ? meta.volume : 0.7) * 100);
+    volLabel.textContent = volSlider.value + '%';
+    toggleSoundBtn.textContent = '🔊 Ses: ' + (meta.soundOn ? 'Açık' : 'Kapalı');
+    toggleVibrateBtn.textContent = '📳 Titreşim: ' + (meta.vibrateOn ? 'Açık' : 'Kapalı');
+    toggleShakeBtn.textContent = '🫨 Ekran Sarsıntısı: ' + (meta.screenShakeOn ? 'Açık' : 'Kapalı');
+  }
+  settingsBtn.addEventListener('click', () => {
+    refreshSettingsUI();
+    mainMenu.classList.add('hidden');
+    settingsMenu.classList.remove('hidden');
+  });
+  settingsBackBtn.addEventListener('click', () => {
+    settingsMenu.classList.add('hidden');
+    mainMenu.classList.remove('hidden');
+    saveMeta();
+  });
+  volSlider.addEventListener('input', () => {
+    meta.volume = volSlider.value / 100;
+    volLabel.textContent = volSlider.value + '%';
+  });
+  volSlider.addEventListener('change', () => { ensureAudio(); sfxStar(); saveMeta(); });
+  toggleSoundBtn.addEventListener('click', () => {
+    meta.soundOn = !meta.soundOn;
+    if (meta.soundOn) ensureAudio();
+    refreshSettingsUI(); updateSoundBtn(); saveMeta();
+  });
+  toggleVibrateBtn.addEventListener('click', () => {
+    meta.vibrateOn = !meta.vibrateOn;
+    if (meta.vibrateOn) vibrate(20);
+    refreshSettingsUI(); saveMeta();
+  });
+  toggleShakeBtn.addEventListener('click', () => {
+    meta.screenShakeOn = !meta.screenShakeOn;
+    refreshSettingsUI(); updateShakeBtn(); saveMeta();
+  });
+  const dailyBonusModal = document.getElementById('dailyBonusModal');
+  const dailyBonusText = document.getElementById('dailyBonusText');
+  const dailyBonusCloseBtn = document.getElementById('dailyBonusCloseBtn');
+  const previewModal = document.getElementById('previewModal');
+  const previewIcon = document.getElementById('previewIcon');
+  const previewTitle = document.getElementById('previewTitle');
+  const previewText = document.getElementById('previewText');
+  const previewCloseBtn = document.getElementById('previewCloseBtn');
 
   let W, H, DPR;
+  let viewScale = 1;
   function resize() {
     DPR = Math.min(window.devicePixelRatio || 1, 2);
     W = window.innerWidth;
@@ -169,6 +445,12 @@
     canvas.width = W * DPR;
     canvas.height = H * DPR;
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    // YENİ: Dar/uzun ekranlarda (telefon dikey) oyun dünyasını hafifçe küçülterek daha fazla
+    // yatay alan gösteriyoruz — böylece bilgisayardaki geniş görüşe yaklaşıyor, önündeki
+    // tehlikeleri daha erken görüyorsun. Geniş ekranlarda (masaüstü) 1'de kalır.
+    // Referans genişlik 620px: ekran daralınca viewScale düşer (min 0.62'ye kadar).
+    const REF_WIDTH = 620;
+    viewScale = Math.max(0.62, Math.min(1, W / REF_WIDTH));
   }
   window.addEventListener('resize', resize);
   resize();
@@ -183,21 +465,108 @@
     cameraOffsetX: 0.34,
     maxDt: 1 / 30,
     meterPx: 20,
-    magnetFirstMeter: 10,
-    magnetInterval: 90,
-    magnetIntervalJitter: 20,
+    magnetFirstMeter: 40,
+    magnetInterval: 260,
+    magnetIntervalJitter: 40,
     magnetDuration: 3.5,
     clusterStartOffset: 5,
-    clusterEndOffset: 20,
+    clusterEndOffset: 55,
     clusterStarCount: 20,
-    shieldFirstMeter: 35,
-    shieldInterval: 50,
+    // YENİ: Zıplayarak erişilebilen seyrek gökyüzü yıldız yayları (mıknatıs olmayan yerlerde).
+    // Platform üstünde, zıplama kavisini takip eden 5-8 yıldızlık gruplar.
+    skyArcChance: 0.32,
+    skyArcMinStars: 5,
+    skyArcMaxStars: 8,
+    skyArcHeight: 95,   // platform üstünden tepe yüksekliği (zıplama menzili içinde)
+    shieldFirstMeter: 90,
+    shieldInterval: 240,
     coyoteTime: 0.09,
     jumpBufferTime: 0.12,
     maxSpeedBonus: 90,
     speedRampPerMeter: 0.12,
-    maxParticles: 140
+    maxParticles: 140,
+    invincibilityDuration: 1.2,
+    // Kombo artık tamamen sıfırlanmıyor, süre dolunca yarıya iniyor (daha az cezalandırıcı).
+    comboWindow: 1.4,
+    comboStarsPerLevel: 4,
+    comboMaxMultiplier: 4,
+    // FIX: Android'de arka plana alınan sekme "visibilitychange" olayı hiç ateşlenmeden
+    // sonlandırılabiliyor. Kayıt aralığını kısaltarak veri kaybı riskini azaltıyoruz.
+    autosaveInterval: 5,
+    // FIX: Can kaybedip platforma geri ışınlandıktan hemen sonra oyuncu tam hızda koşmaya
+    // devam ediyor ve tepki verecek zaman bulamadan art arda düşebiliyordu. Respawn sonrası
+    // kısa bir süre koşu hızını ciddi şekilde düşürerek oyuncuya zıplama fırsatı veriyoruz.
+    respawnGraceTime: 1,
+    respawnGraceSpeedMult: 0.18,
+    // Yeni: diken (statik tehlike) ayarları
+    spikeFirstMeter: 30,
+    spikeInterval: 42,
+    spikeIntervalJitter: 12,
+    // YENİ ENGELLER — orta-dengeli, mesafeyle sıklaşır.
+    // Geniş/çift diken: normal dikenden daha geniş, daha uzun zıplama ister.
+    wideSpikeStartMeter: 400,
+    wideSpikeInterval: 160,
+    wideSpikeIntervalJitter: 35,
+    // Zıplayan mini engel (mayın): yerde yavaşça inip kalkar, zamanlama ister.
+    hopperStartMeter: 180,
+    hopperInterval: 120,
+    hopperIntervalJitter: 30,
+    hopperAmp: 34,
+    hopperSpeed: 2.2,
+    hopperHitR: 16,
+    // Yeni: devriye gezen düşman (drone) ayarları — belirli bir mesafeden sonra ortaya çıkar.
+    // FIX: Artık dikenle aynı mantıkla (zeminde, üzerinden zıplayarak geçilir) çalışıyor,
+    // havada rastgele bir yükseklikte asılı kalmıyor — böylece "dikeni atlamak için zıpla"
+    // ile "drone'dan kaçınmak için zıplama" çelişkisi ortadan kalkıyor.
+    droneStartMeter: 150,
+    droneFirstMeter: 160,
+    droneInterval: 110,
+    droneIntervalJitter: 25,
+    droneHazardHeight: 30,
+    droneHitWidth: 30,
+    droneSpeed: 1.6,
+    // YENİ: robotun kafasına basma (stomp) — sektirme gücü ve ödülü.
+    stompBounce: -620,
+    stompReward: 30,
+    // YENİ: özel platformlar
+    specialPlatformStartMeter: 120,
+    specialPlatformChance: 0.28,
+    movingPlatformAmp: 42,
+    movingPlatformSpeed: 1.4,
+    crumbleDelay: 0.55,
+    crumbleRespawnTime: 3.5,
+    // Yeni: çift zıplama güçlendirmesi
+    doubleJumpFirstMeter: 110,
+    doubleJumpInterval: 300,
+    doubleJumpPower: -620,
+    // YENİ: Biriktirilebilir "acil kaçış zıplaması" — can gibi stoklanır, hızlı çift dokunuşla
+    // her an (yerde ya da havada) tetiklenir, tehlikeli anlarda (diken/drone) kurtulma payı verir.
+    jumpChargeMax: 20,
+    doubleTapWindow: 0.35,
+    emergencyJumpPower: -780,
+    emergencyInvincibility: 0.5,
+    maxLivesCap: 6,
+    // Yeni: hız artışı güçlendirmesi
+    boostFirstMeter: 130,
+    boostInterval: 320,
+    boostDuration: 4,
+    boostSpeedAdd: 130,
+    // Yeni: bölge (biome) eşikleri
+    biomeMeters: [0, 300, 700, 1200],
+    // Yeni: hayalet (ghost) kayıt aralığı (saniye)
+    ghostSampleInterval: 0.1,
+    ghostMaxSamples: 4500
   };
+
+  // YENİ: Koşu başında uygulanan, yıldızla satın alınabilir tüketilebilir güçlendirmeler.
+  // Fiyatlar test için düşük tutuldu — dengeleme sonrası artırılabilir.
+  const POWERUPS = [
+    {id: 'shield', label: 'Kalkan', icon: '🛡️', cost: 15, desc: 'Koşuya kalkanla başla'},
+    {id: 'magnet', label: 'Mıknatıs', icon: '🧲', cost: 20, desc: 'Koşuya mıknatıs aktifken başla'},
+    {id: 'boost',  label: 'Hızlanma', icon: '⚡', cost: 15, desc: 'Koşuya hız artışıyla başla'},
+    {id: 'jump',   label: 'Acil Zıplama', icon: '🪽', cost: 25, desc: 'Koşuya +1 acil zıplama stoğuyla başla'},
+    {id: 'life',   label: 'Ekstra Can', icon: '❤️', cost: 40, desc: 'Koşuya +1 canla başla (maks 6)'}
+  ];
 
   const WEATHERS = [
     {id: 'day',   label: 'Gündüz', icon: '☀️', cost: 0},
@@ -215,31 +584,187 @@
     {id: 'dragon',  label: 'Ejderha',icon: '🐉', cost: 1300}
   ];
 
+  // Bölgeler: mesafe arttıkça arka plan teması değişir (sadece hava durumu değil, gerçek "bölge" hissi).
+  const BIOMES = [
+    {
+      id: 'forest', name: 'Orman', minMeter: 0, icon: '🌲',
+      hill1: 'rgba(120,140,180,0.35)', hill2: 'rgba(70,150,120,0.55)', hill3: 'rgba(46,204,113,0.35)',
+      groundTop: '#3FDD7B', groundBottom: '#2ECC71', dayHue: 0
+    },
+    {
+      id: 'desert', name: 'Çöl', minMeter: 300, icon: '🏜️',
+      hill1: 'rgba(196,164,132,0.4)', hill2: 'rgba(214,150,90,0.55)', hill3: 'rgba(224,120,70,0.4)',
+      groundTop: '#E8C77E', groundBottom: '#D9A441', dayHue: -30
+    },
+    {
+      id: 'city', name: 'Şehir', minMeter: 700, icon: '🏙️',
+      hill1: 'rgba(90,100,130,0.45)', hill2: 'rgba(60,70,100,0.6)', hill3: 'rgba(40,45,70,0.5)',
+      groundTop: '#9FB4C7', groundBottom: '#5E7A94', dayHue: 40
+    },
+    {
+      id: 'space', name: 'Uzay', minMeter: 1200, icon: '🌌',
+      hill1: 'rgba(90,60,140,0.4)', hill2: 'rgba(60,30,110,0.55)', hill3: 'rgba(30,15,70,0.5)',
+      groundTop: '#C9A6FF', groundBottom: '#7A4FE0', dayHue: 220
+    }
+  ];
+  function getBiome(meter) {
+    let b = BIOMES[0];
+    for (const cand of BIOMES) if (meter >= cand.minMeter) b = cand;
+    return b;
+  }
+
+  // Kayıt sürümü: meta yapısı ileride değişirse migrateMeta() eski kayıtları günceller.
+  const META_VERSION = 3;
+
   let meta = {
+    version: META_VERSION,
     totalStars: 0,
     unlockedWeathers: ['day'],
     unlockedSkins: ['default'],
     selectedWeather: 'day',
     selectedSkin: 'default',
     bestDistance: 0,
-    bestScore: 0
+    bestScore: 0,
+    soundOn: true,
+    volume: 0.7,
+    vibrateOn: true,
+    screenShakeOn: true,
+    tutorialSeen: false,
+    emergencyJumpTipSeen: false,
+    powerups: {shield: 0, magnet: 0, boost: 0, jump: 0, life: 0},
+    lastLoginDate: null,
+    loginStreak: 0,
+    achievements: {},
+    stats: {
+      totalStarsCollected: 0,
+      gamesPlayed: 0,
+      maxCombo: 1,
+      shieldSaves: 0,
+      totalDistanceRun: 0,
+      totalPlayTimeSec: 0,
+      perfectRuns: 0,
+      deathZones: {}
+    },
+    ghost: null // { distance, score, samples: [{t,x,y}] }
   };
+
+  // Başarım tanımları: check(meta) true dönünce başarım açılır ve reward yıldız verilir.
+  const ACHIEVEMENTS = [
+    {id: 'dist100', label: 'İlk 100 Metre', icon: '🏁', desc: '100 metre koş', reward: 50, check: m => m.bestDistance >= 100},
+    {id: 'dist500', label: 'Maratoncu', icon: '🏃', desc: '500 metre koş', reward: 150, check: m => m.bestDistance >= 500},
+    {id: 'dist1000', label: 'Efsane Koşucu', icon: '🌟', desc: '1000 metre koş', reward: 300, check: m => m.bestDistance >= 1000},
+    {id: 'combo4', label: 'Kombo Ustası', icon: '🔥', desc: 'x4 kombo yap', reward: 100, check: m => m.stats.maxCombo >= 4},
+    {id: 'games10', label: 'Azimli (Bronz)', icon: '💪', desc: '10 kez oyna', reward: 80, check: m => m.stats.gamesPlayed >= 10},
+    {id: 'games50', label: 'Azimli (Gümüş)', icon: '💪', desc: '50 kez oyna', reward: 200, check: m => m.stats.gamesPlayed >= 50},
+    {id: 'games100', label: 'Azimli (Altın)', icon: '💪', desc: '100 kez oyna', reward: 400, check: m => m.stats.gamesPlayed >= 100},
+    {id: 'shield3', label: 'Kalkan Kahramanı', icon: '🛡️', desc: 'Kalkanla 3 kez hayatta kal', reward: 120, check: m => m.stats.shieldSaves >= 3},
+    {id: 'stars100', label: 'Yıldız Avcısı (Bronz)', icon: '⭐', desc: 'Toplamda 100 yıldız topla', reward: 40, check: m => m.stats.totalStarsCollected >= 100},
+    {id: 'stars1000', label: 'Yıldız Avcısı (Gümüş)', icon: '⭐', desc: 'Toplamda 1000 yıldız topla', reward: 100, check: m => m.stats.totalStarsCollected >= 1000},
+    {id: 'stars5000', label: 'Yıldız Avcısı (Altın)', icon: '⭐', desc: 'Toplamda 5000 yıldız topla', reward: 350, check: m => m.stats.totalStarsCollected >= 5000},
+    {id: 'perfect1', label: 'Kusursuz Koşu', icon: '🌟', desc: 'Hiç can kaybetmeden bitir', reward: 150, check: m => m.stats.perfectRuns >= 1},
+    {id: 'allSkins', label: 'Koleksiyoncu', icon: '👑', desc: 'Tüm topları aç', reward: 200, check: m => m.unlockedSkins.length >= SKINS.length}
+  ];
+
+  function hasWindowStorage() {
+    return typeof window.storage !== 'undefined' && window.storage !== null;
+  }
+
+  // Eski kayıtları yeni alanlarla güvenli şekilde tamamlar (veri kaybı olmadan).
+  function migrateMeta() {
+    if (meta.screenShakeOn === undefined) meta.screenShakeOn = true;
+    if (meta.volume === undefined) meta.volume = 0.7;
+    if (meta.vibrateOn === undefined) meta.vibrateOn = true;
+    if (meta.tutorialSeen === undefined) meta.tutorialSeen = false;
+    if (meta.emergencyJumpTipSeen === undefined) meta.emergencyJumpTipSeen = false;
+    if (!meta.powerups) meta.powerups = {shield: 0, magnet: 0, boost: 0, jump: 0, life: 0};
+    for (const pu of ['shield','magnet','boost','jump','life']) {
+      if (meta.powerups[pu] === undefined) meta.powerups[pu] = 0;
+    }
+    if (meta.lastLoginDate === undefined) meta.lastLoginDate = null;
+    if (meta.loginStreak === undefined) meta.loginStreak = 0;
+    if (!meta.achievements) meta.achievements = {};
+    if (!meta.stats) {
+      meta.stats = {totalStarsCollected: 0, gamesPlayed: 0, maxCombo: 1, shieldSaves: 0, totalDistanceRun: 0, totalPlayTimeSec: 0, perfectRuns: 0, deathZones: {}};
+    } else {
+      if (meta.stats.totalStarsCollected === undefined) meta.stats.totalStarsCollected = 0;
+      if (meta.stats.gamesPlayed === undefined) meta.stats.gamesPlayed = 0;
+      if (meta.stats.maxCombo === undefined) meta.stats.maxCombo = 1;
+      if (meta.stats.shieldSaves === undefined) meta.stats.shieldSaves = 0;
+      if (meta.stats.totalDistanceRun === undefined) meta.stats.totalDistanceRun = 0;
+      if (meta.stats.totalPlayTimeSec === undefined) meta.stats.totalPlayTimeSec = 0;
+      if (meta.stats.perfectRuns === undefined) meta.stats.perfectRuns = 0;
+      if (!meta.stats.deathZones) meta.stats.deathZones = {};
+    }
+    if (meta.ghost === undefined) meta.ghost = null;
+    meta.version = META_VERSION;
+  }
+
+  async function loadMeta() {
+    try {
+      if (hasWindowStorage()) {
+        const res = await window.storage.get('lum-progress');
+        if (res && res.value) {
+          meta = Object.assign(meta, JSON.parse(res.value));
+        }
+      } else if (window.localStorage) {
+        const raw = localStorage.getItem('lum-progress');
+        if (raw) meta = Object.assign(meta, JSON.parse(raw));
+      }
+    } catch (e) { }
+    migrateMeta();
+    refreshCurrencyUI();
+    renderShop();
+    renderAchievements();
+    updateSoundBtn();
+    updateShakeBtn();
+    checkDailyBonus();
+  }
+
+  async function saveMeta() {
+    const json = JSON.stringify(meta);
+    try {
+      if (hasWindowStorage()) {
+        await window.storage.set('lum-progress', json);
+        return;
+      }
+    } catch (e) { }
+    try {
+      if (window.localStorage) localStorage.setItem('lum-progress', json);
+    } catch (e) { }
+  }
+
+  function vibrate(pattern) {
+    try {
+      if (meta.vibrateOn && navigator.vibrate) navigator.vibrate(pattern);
+    } catch (e) { }
+  }
 
   let audioCtx = null;
   function ensureAudio() {
+    if (!meta.soundOn) return;
     if (!audioCtx) {
       try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { }
     } else if (audioCtx.state === 'suspended') {
       audioCtx.resume();
     }
   }
+  // FIX: uygulama arka plana alınıp geri geldiğinde AudioContext "suspended" halde takılı
+  // kalabiliyor (özellikle Android WebView). Ayrı bir yardımcı fonksiyonla her fırsatta
+  // resume deniyoruz: visibilitychange ve duraklatmadan devam ederken.
+  function resumeAudioIfNeeded() {
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(() => {});
+    }
+  }
   function playTone(freq, duration, type, gainStart) {
-    if (!audioCtx) return;
+    if (!audioCtx || !meta.soundOn) return;
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.type = type || 'sine';
     osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-    gain.gain.setValueAtTime(gainStart || 0.18, audioCtx.currentTime);
+    // YENİ: kullanıcının ses seviyesi ayarını uygula (0..1).
+    const vol = (gainStart || 0.18) * (meta.volume !== undefined ? meta.volume : 0.7);
+    gain.gain.setValueAtTime(Math.max(vol, 0.0001), audioCtx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
     osc.connect(gain).connect(audioCtx.destination);
     osc.start();
@@ -252,27 +777,25 @@
   function sfxShield() { playTone(700, 0.18, 'sine', 0.14); }
   function sfxHurt() { playTone(160, 0.3, 'sawtooth', 0.18); }
   function sfxGameOver() { playTone(220, 0.4, 'sawtooth', 0.15); setTimeout(() => playTone(160, 0.5, 'sawtooth', 0.15), 150); }
+  function sfxCombo() { playTone(1400, 0.06, 'square', 0.1); }
+  function sfxBoost() { playTone(200, 0.06, 'sawtooth', 0.1); playTone(500, 0.18, 'sawtooth', 0.12); }
+  function sfxDoubleJump() { playTone(700, 0.08, 'square', 0.12); setTimeout(() => playTone(950, 0.1, 'square', 0.1), 40); }
 
-  async function loadMeta() {
-    try {
-      if (window.storage) {
-        const res = await window.storage.get('lum-progress');
-        if (res && res.value) {
-          const parsed = JSON.parse(res.value);
-          meta = Object.assign(meta, parsed);
-        }
-      }
-    } catch (e) { }
-    refreshCurrencyUI();
-    renderShop();
-  }
-
-  async function saveMeta() {
-    try {
-      if (window.storage) {
-        await window.storage.set('lum-progress', JSON.stringify(meta));
-      }
-    } catch (e) { }
+  // ---- Prosedürel arka plan müziği: tempo koşu hızına göre ölçeklenir ----
+  const MUSIC_SCALE = [261.6, 329.6, 392.0, 440.0, 523.2, 659.3];
+  let musicNextTime = 0;
+  let musicStep = 0;
+  function updateMusic(currentRunSpeed) {
+    if (!meta.soundOn || !audioCtx || !running || paused) return;
+    const tempoFactor = Math.max(0.55, 1 - (currentRunSpeed - CONFIG.runSpeed) / 500);
+    const noteInterval = 0.34 * tempoFactor;
+    if (audioCtx.currentTime >= musicNextTime) {
+      const note = MUSIC_SCALE[musicStep % MUSIC_SCALE.length];
+      playTone(note, noteInterval * 0.9, 'triangle', 0.045);
+      if (musicStep % 4 === 0) playTone(note / 2, noteInterval * 1.6, 'sine', 0.035);
+      musicStep++;
+      musicNextTime = audioCtx.currentTime + noteInterval;
+    }
   }
 
   function refreshCurrencyUI() {
@@ -287,17 +810,18 @@
     for (const w of WEATHERS) {
       weatherGrid.appendChild(buildShopItem(w, meta.unlockedWeathers, meta.selectedWeather, (id) => {
         meta.selectedWeather = id;
-      }));
+        initWeatherParticles();
+      }, true));
     }
     skinGrid.innerHTML = '';
     for (const s of SKINS) {
       skinGrid.appendChild(buildShopItem(s, meta.unlockedSkins, meta.selectedSkin, (id) => {
         meta.selectedSkin = id;
-      }));
+      }, false));
     }
   }
 
-  function buildShopItem(item, unlockedList, selectedId, onSelect) {
+  function buildShopItem(item, unlockedList, selectedId, onSelect, isWeather) {
     const el = document.createElement('button');
     const unlocked = unlockedList.includes(item.id);
     el.className = 'shopItem' + (unlocked ? '' : ' locked') + (selectedId === item.id ? ' selected' : '');
@@ -310,13 +834,17 @@
       if (unlocked) {
         onSelect(item.id);
         renderShop();
+        saveMeta();
       } else if (meta.totalStars >= item.cost) {
         meta.totalStars -= item.cost;
         unlockedList.push(item.id);
         onSelect(item.id);
         refreshCurrencyUI();
         renderShop();
+        checkAchievements();
         saveMeta();
+      } else {
+        showPreview(item, isWeather);
       }
     });
     return el;
@@ -332,11 +860,331 @@
     saveMeta();
   });
 
+  achBtn.addEventListener('click', () => {
+    renderAchievements();
+    mainMenu.classList.add('hidden');
+    achMenu.classList.remove('hidden');
+  });
+  achBackBtn.addEventListener('click', () => {
+    achMenu.classList.add('hidden');
+    mainMenu.classList.remove('hidden');
+  });
+
+  statsBtn.addEventListener('click', () => {
+    renderStats();
+    mainMenu.classList.add('hidden');
+    statsMenu.classList.remove('hidden');
+  });
+  statsBackBtn.addEventListener('click', () => {
+    statsMenu.classList.add('hidden');
+    mainMenu.classList.remove('hidden');
+  });
+
+  // YENİ: Güçlendirme mağazası — her karta bas = 1 adet satın al (yeterli yıldız varsa).
+  function renderPowerShop() {
+    powerCurrencyEl.textContent = meta.totalStars;
+    powerGrid.innerHTML = '';
+    for (const pu of POWERUPS) {
+      const owned = meta.powerups[pu.id] || 0;
+      const el = document.createElement('button');
+      el.className = 'shopItem' + (meta.totalStars >= pu.cost ? '' : ' locked');
+      el.title = pu.desc;
+      el.innerHTML =
+        (owned > 0 ? '<span class="check">x' + owned + '</span>' : '') +
+        '<span class="icon">' + pu.icon + '</span>' +
+        '<span>' + pu.label + '</span>' +
+        '<span class="cost">💰' + pu.cost + '</span>';
+      el.addEventListener('click', () => {
+        if (meta.totalStars >= pu.cost) {
+          meta.totalStars -= pu.cost;
+          meta.powerups[pu.id] = (meta.powerups[pu.id] || 0) + 1;
+          sfxStar();
+          vibrate(15);
+          refreshCurrencyUI();
+          renderPowerShop();
+          saveMeta();
+        } else {
+          showPreview({icon: pu.icon, label: pu.label, cost: pu.cost}, false);
+        }
+      });
+      powerGrid.appendChild(el);
+    }
+  }
+  powerBtn.addEventListener('click', () => {
+    renderPowerShop();
+    mainMenu.classList.add('hidden');
+    powerMenu.classList.remove('hidden');
+  });
+  powerBackBtn.addEventListener('click', () => {
+    powerMenu.classList.add('hidden');
+    mainMenu.classList.remove('hidden');
+    // Oyun bitiş ekranından gelindiyse (share görünür) güçlendirme kısayolu da görünür kalsın.
+    if (!shareBtn.classList.contains('hidden')) gameOverPowerBtn.classList.remove('hidden');
+    saveMeta();
+  });
+
+  howBtn.addEventListener('click', () => {
+    mainMenu.classList.add('hidden');
+    howMenu.classList.remove('hidden');
+  });
+  howBackBtn.addEventListener('click', () => {
+    howMenu.classList.add('hidden');
+    mainMenu.classList.remove('hidden');
+  });
+
+  // YENİ: oyun bitiş ekranındaki hızlı güçlendirme kısayolu.
+  gameOverPowerBtn.addEventListener('click', () => {
+    renderPowerShop();
+    mainMenu.classList.add('hidden');
+    powerMenu.classList.remove('hidden');
+  });
+
+  function fmtTime(sec) {
+    sec = Math.floor(sec);
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    if (h > 0) return h + 's ' + m + 'dk';
+    if (m > 0) return m + 'dk ' + s + 'sn';
+    return s + 'sn';
+  }
+
+  function renderStats() {
+    const s = meta.stats;
+    const avgScore = s.gamesPlayed ? Math.round(meta.totalStars > 0 ? (s.totalStarsCollected / s.gamesPlayed) : 0) : 0;
+    const rows = [
+      ['🏁 En iyi mesafe', meta.bestDistance + 'm'],
+      ['⭐ En iyi skor', meta.bestScore + ''],
+      ['📏 Toplam koşulan mesafe', s.totalDistanceRun + 'm'],
+      ['⏱️ Toplam oyun süresi', fmtTime(s.totalPlayTimeSec)],
+      ['🎮 Oynanan oyun sayısı', s.gamesPlayed + ''],
+      ['🌟 Kusursuz koşu sayısı', s.perfectRuns + ''],
+      ['🔥 En yüksek kombo', 'x' + (s.maxCombo || 1)],
+      ['💎 Toplam yıldız (kariyer)', s.totalStarsCollected + ''],
+      ['🛡️ Kalkanla kurtulma', s.shieldSaves + '']
+    ];
+    statsList.innerHTML = rows.map(r =>
+      '<div class="statRow"><span>' + r[0] + '</span><b>' + r[1] + '</b></div>'
+    ).join('');
+  }
+
+  function renderAchievements() {
+    achList.innerHTML = '';
+    for (const a of ACHIEVEMENTS) {
+      const unlocked = !!meta.achievements[a.id];
+      const row = document.createElement('div');
+      row.className = 'achRow' + (unlocked ? '' : ' locked');
+      row.innerHTML =
+        '<span class="achIcon">' + (unlocked ? a.icon : '🔒') + '</span>' +
+        '<span class="achText"><span class="achTitle">' + a.label + '</span><br>' +
+        '<span class="achDesc">' + a.desc + '</span></span>' +
+        '<span class="achReward">' + (unlocked ? '✅' : '+' + a.reward + '💰') + '</span>';
+      achList.appendChild(row);
+    }
+  }
+
+  let achievementQueue = [];
+  function checkAchievements() {
+    for (const a of ACHIEVEMENTS) {
+      if (!meta.achievements[a.id] && a.check(meta)) {
+        meta.achievements[a.id] = true;
+        meta.totalStars += a.reward;
+        achievementQueue.push(a);
+      }
+    }
+    if (achievementQueue.length) {
+      saveMeta();
+      refreshCurrencyUI();
+      showNextAchievementPopup();
+    }
+  }
+  let achievementPopupTimer = null;
+  function showNextAchievementPopup() {
+    if (achievementPopupTimer || !achievementQueue.length) return;
+    const a = achievementQueue.shift();
+    achievementText.textContent = a.icon + ' ' + a.label + ' (+' + a.reward + '💰)';
+    achievementBanner.classList.remove('hidden');
+    sfxCombo();
+    vibrate(20);
+    achievementPopupTimer = setTimeout(() => {
+      achievementBanner.classList.add('hidden');
+      achievementPopupTimer = null;
+      if (achievementQueue.length) setTimeout(showNextAchievementPopup, 300);
+    }, 2200);
+  }
+
+  function updateShakeBtn() {
+    shakeBtn.textContent = meta.screenShakeOn ? '🫨' : '🚫';
+    shakeBtn.title = meta.screenShakeOn ? 'Sarsıntıyı Kapat' : 'Sarsıntıyı Aç';
+  }
+  shakeBtn.addEventListener('click', () => {
+    meta.screenShakeOn = !meta.screenShakeOn;
+    updateShakeBtn();
+    saveMeta();
+  });
+  function triggerShake(duration, mag) {
+    if (!meta.screenShakeOn) return;
+    world.shakeTime = duration;
+    world.shakeMag = mag;
+  }
+
+  function checkDailyBonus() {
+    const today = new Date().toISOString().slice(0, 10);
+    if (meta.lastLoginDate === today) return;
+    if (meta.lastLoginDate) {
+      const prevDate = new Date(meta.lastLoginDate + 'T00:00:00');
+      const todayDate = new Date(today + 'T00:00:00');
+      const diffDays = Math.round((todayDate - prevDate) / 86400000);
+      meta.loginStreak = diffDays === 1 ? (meta.loginStreak || 0) + 1 : 1;
+    } else {
+      meta.loginStreak = 1;
+    }
+    const streak = Math.min(meta.loginStreak, 10);
+    const bonus = 50 + streak * 10;
+    meta.lastLoginDate = today;
+    meta.totalStars += bonus;
+    saveMeta();
+    refreshCurrencyUI();
+    dailyBonusText.textContent = (meta.loginStreak) + '. gün üst üste giriş! +' + bonus + ' 💰 kazandın.';
+    dailyBonusModal.classList.remove('hidden');
+  }
+  dailyBonusCloseBtn.addEventListener('click', () => {
+    dailyBonusModal.classList.add('hidden');
+  });
+
+  function showPreview(item, isWeather) {
+    previewIcon.textContent = item.icon;
+    previewTitle.textContent = item.label;
+    const needed = Math.max(item.cost - meta.totalStars, 0);
+    previewText.textContent = isWeather
+      ? ('Bu hava durumunu açmak için ' + item.cost + ' 💰 gerekli (' + needed + ' 💰 daha topla).')
+      : ('Bu görünümü açmak için ' + item.cost + ' 💰 gerekli (' + needed + ' 💰 daha topla).');
+    previewModal.classList.remove('hidden');
+  }
+  previewCloseBtn.addEventListener('click', () => {
+    previewModal.classList.add('hidden');
+  });
+
+  shareBtn.addEventListener('click', async () => {
+    const text = 'Lüm: Işık Koşusu\'nda ' + world.distance + 'm koştum ve ' + world.score + ' ⭐ topladım!';
+    try {
+      if (navigator.share) {
+        await navigator.share({text});
+        return;
+      }
+    } catch (e) { }
+    try {
+      await navigator.clipboard.writeText(text);
+      const original = shareBtn.textContent;
+      shareBtn.textContent = 'Kopyalandı ✓';
+      setTimeout(() => { shareBtn.textContent = original; }, 1500);
+    } catch (e) { }
+  });
+
+  function updateSoundBtn() {
+    soundBtn.textContent = meta.soundOn ? '🔊' : '🔇';
+  }
+  soundBtn.addEventListener('click', () => {
+    meta.soundOn = !meta.soundOn;
+    updateSoundBtn();
+    saveMeta();
+    if (meta.soundOn) ensureAudio();
+  });
+
+  let paused = false;
+  pauseBtn.addEventListener('click', () => {
+    if (!running) return;
+    togglePause();
+  });
+  resumeBtn.addEventListener('click', () => {
+    togglePause();
+  });
+  quitBtn.addEventListener('click', () => {
+    paused = false;
+    running = false;
+    hudEl.classList.add('hidden');
+    panel.classList.remove('hidden');
+    pauseMenu.classList.add('hidden');
+    mainMenu.classList.remove('hidden');
+    mainMenu.querySelector('h1').textContent = '🎮 Lüm: Işık Koşusu';
+    mainMenu.querySelector('p').innerHTML = '';
+    startBtn.textContent = 'BAŞLA';
+    shareBtn.classList.add('hidden');
+    gameOverPowerBtn.classList.add('hidden');
+    refreshCurrencyUI();
+    saveMeta();
+  });
+  function togglePause() {
+    paused = !paused;
+    if (paused) {
+      isCharging = false;
+      panel.classList.remove('hidden');
+      mainMenu.classList.add('hidden');
+      shopMenu.classList.add('hidden');
+      pauseMenu.classList.remove('hidden');
+    } else {
+      panel.classList.add('hidden');
+      pauseMenu.classList.add('hidden');
+      // FIX: devam ederken AudioContext suspended kaldıysa uyandır (arka plandan dönüş sonrası
+      // ses tamamen sessiz kalmasın diye).
+      resumeAudioIfNeeded();
+      // FIX: duraklatma öncesi son dokunuş, devam sonrası ilk dokunuşla çift dokunuş sayılmasın.
+      lastTapTime = 0;
+      lastTime = performance.now();
+      requestAnimationFrame(loop);
+    }
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && running && !paused) {
+      togglePause();
+    }
+    // FIX: sekme tekrar görünür olduğunda AudioContext'i uyandırmayı dene.
+    if (!document.hidden) {
+      resumeAudioIfNeeded();
+    }
+    if (document.hidden) saveMeta();
+  });
+
   let world = {};
   let running = false;
   let lastTime = 0;
   let touchStart = 0;
   let isCharging = false;
+
+  // FIX: HUD üzerindeki dokunmatik butonlar (duraklat/ses/sarsıntı) ile oyun alanı dokunuşu
+  // çakışıyordu — parmak bu butonların üstündeyken oyun da zıplıyordu. Dokunuşun/mouse'un
+  // ekran koordinatı bu butonlardan birinin sınırları içindeyse oyunla ilgili input'u tamamen
+  // yok sayıyoruz; buton kendi click event'ini normal şekilde alır.
+  function isOverHudButton(clientX, clientY) {
+    const hudButtons = [soundBtn, pauseBtn, shakeBtn];
+    for (const el of hudButtons) {
+      const r = el.getBoundingClientRect();
+      if (clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function deathBucket(meter) {
+    return Math.floor(meter / 50) * 50;
+  }
+  // Görünmez zorluk ayarı: bir bölgede tekrar tekrar ölünüyorsa orayı biraz kolaylaştır.
+  function getDifficultyMod(meter) {
+    const bucket = deathBucket(meter);
+    const count = (meta.stats.deathZones && meta.stats.deathZones[bucket]) || 0;
+    if (count >= 3) return {gapMult: 0.72, widthMult: 1.25, hazardMult: 0.35};
+    if (count >= 1) return {gapMult: 0.85, widthMult: 1.12, hazardMult: 0.65};
+    return {gapMult: 1, widthMult: 1, hazardMult: 1};
+  }
+  // Gerilim/rahatlama ritmi: mesafeye bağlı bir sinüs dalgası ile zorluk periyodik olarak dalgalanır.
+  function getRhythmMod(x) {
+    const meter = x / CONFIG.meterPx;
+    const phase = Math.sin(meter / 55);
+    if (phase > 0.45) return {gapMult: 0.82, widthMult: 0.85, hazardMult: 1.5, tense: true};
+    if (phase < -0.45) return {gapMult: 1.15, widthMult: 1.2, hazardMult: 0.4, tense: false};
+    return {gapMult: 1, widthMult: 1, hazardMult: 1, tense: false};
+  }
 
   function resetWorld() {
     const startY = H * 0.55;
@@ -346,9 +1194,13 @@
         w: CONFIG.playerSize, h: CONFIG.playerSize,
         onGround: false,
         squash: 1,
-        hasShield: false
+        hasShield: false,
+        invincible: 0,
+        // FIX: tekli hasDoubleJump boolean'ı yerine biriktirilebilir zıplama stoğu.
+        jumpCharges: 0
       },
       camX: 0,
+      camScale: 1,
       distance: 0,
       score: 0,
       lives: 3,
@@ -357,61 +1209,281 @@
       skyStars: [],
       magnets: [],
       shields: [],
+      spikes: [],
+      hoppers: [],
+      drones: [],
+      doubleJumps: [],
+      boosts: [],
       particles: [],
+      scorePopups: [],
       weatherParticles: [],
       clouds: [],
       nextPlatformX: 0,
       nextCloudX: 0,
       nextMagnetMeter: CONFIG.magnetFirstMeter,
       nextShieldMeter: CONFIG.shieldFirstMeter,
+      nextSpikeMeter: CONFIG.spikeFirstMeter,
+      nextWideSpikeMeter: CONFIG.wideSpikeStartMeter,
+      nextHopperMeter: CONFIG.hopperStartMeter,
+      nextDroneMeter: CONFIG.droneFirstMeter,
+      nextDoubleJumpMeter: CONFIG.doubleJumpFirstMeter,
+      nextBoostMeter: CONFIG.boostFirstMeter,
       magnetActive: false,
       magnetTimer: 0,
+      boostActive: false,
+      boostTimer: 0,
+      combo: 0,
+      comboMultiplier: 1,
+      comboTimer: 0,
       time: 0,
       coyoteTimer: 0,
       jumpBufferTimer: 0,
       shakeTime: 0,
       shakeMag: 0,
       flashTime: 0,
-      flashColor: 'rgba(255,60,60,0.35)'
+      flashColor: 'rgba(255,60,60,0.35)',
+      autosaveTimer: CONFIG.autosaveInterval,
+      respawnGrace: 0,
+      lastDeathReason: null,
+      tutorialTip: !meta.tutorialSeen,
+      tutorialHiddenAt: 0,
+      startBestDistance: meta.bestDistance,
+      startBestScore: meta.bestScore,
+      currentBiome: null,
+      ghostSamples: [],
+      ghostSampleTimer: 0,
+      ghostPlayback: null, // KALDIRILDI: hayalet gösterimi devre dışı.
+      ghostIndex: 0
     };
-    addPlatform(0, startY, 300);
+    addPlatform(0, startY, 300, 'normal');
     world.player.y = startY - world.player.h;
     generateAhead();
     generateClouds();
     initWeatherParticles();
+    meta.stats.gamesPlayed = (meta.stats.gamesPlayed || 0) + 1;
+
+    // YENİ: satın alınmış güçlendirmeleri koşu başında uygula.
+    // Kalkan/mıknatıs/hızlanma: her koşuda 1 adet tüketilir (birden fazla anlamsız olurdu).
+    // Zıplama: satın alınan TÜM adet stoğa aktarılır (istediğin an harcarsın).
+    // Can: satın alınan tüm adet başlangıç canına eklenir (maks sınırına kadar).
+    if (meta.powerups.shield > 0) {
+      meta.powerups.shield -= 1;
+      world.player.hasShield = true;
+    }
+    if (meta.powerups.magnet > 0) {
+      meta.powerups.magnet -= 1;
+      world.magnetActive = true;
+      world.magnetTimer = CONFIG.magnetDuration;
+    }
+    if (meta.powerups.boost > 0) {
+      meta.powerups.boost -= 1;
+      world.boostActive = true;
+      world.boostTimer = CONFIG.boostDuration;
+    }
+    if (meta.powerups.jump > 0) {
+      world.player.jumpCharges = Math.min(meta.powerups.jump, CONFIG.jumpChargeMax);
+      meta.powerups.jump = 0;
+    }
+    if (meta.powerups.life > 0) {
+      const add = Math.min(meta.powerups.life, CONFIG.maxLivesCap - world.lives);
+      world.lives += Math.max(add, 0);
+      meta.powerups.life = 0;
+    }
+    saveMeta();
+    if (world.tutorialTip) {
+      tutorialBanner.classList.remove('hidden');
+    } else {
+      tutorialBanner.classList.add('hidden');
+    }
+    biomeBanner.classList.add('hidden');
   }
 
-  function addPlatform(x, y, w) {
-    const plat = {x, y, w, h: 24};
+  function addPlatform(x, y, w, forceType) {
+    // YENİ: platform türleri. 'normal' = sabit; 'moving' = dikey gidip gelen;
+    // 'crumbling' = basınca kısa süre sonra kaybolan. Tür mesafeye bağlı olasılıkla seçilir.
+    const meter = x / CONFIG.meterPx;
+    let type = forceType || 'normal';
+    if (!forceType && meter > CONFIG.specialPlatformStartMeter && Math.random() < CONFIG.specialPlatformChance) {
+      type = Math.random() < 0.55 ? 'moving' : 'crumbling';
+    }
+    const plat = {x, y, w, h: 24, type, baseY: y, phase: Math.random() * Math.PI * 2,
+                  crumbleTimer: -1, gone: false};
     world.platforms.push(plat);
+
+    const diffMod = getDifficultyMod(x / CONFIG.meterPx);
+    const rhythmMod = getRhythmMod(x);
+    const hazardMult = diffMod.hazardMult * rhythmMod.hazardMult;
 
     const magnetX = world.nextMagnetMeter * CONFIG.meterPx;
     const shieldX = world.nextShieldMeter * CONFIG.meterPx;
+    const spikeX = world.nextSpikeMeter * CONFIG.meterPx;
+    const wideSpikeX = world.nextWideSpikeMeter * CONFIG.meterPx;
+    const hopperX = world.nextHopperMeter * CONFIG.meterPx;
+    const doubleJumpX = world.nextDoubleJumpMeter * CONFIG.meterPx;
+    const boostX = world.nextBoostMeter * CONFIG.meterPx;
+    const droneX = world.nextDroneMeter * CONFIG.meterPx;
 
+    // --- SPAWN MANTIĞI (yeniden yapılandırıldı) ---
+    // 1) Pickup'lar (mıknatıs/kalkan/çift-zıplama/boost): öncelikli, platformda en fazla biri.
+    //    Bir pickup varsa o platforma tehlike KOYMUYORUZ (adil kalsın).
+    // 2) Pickup yoksa: diken ve drone BAĞIMSIZ değerlendirilir (drone artık başka
+    //    öğelerin gölgesinde kalmıyor). İkisi aynı platforma düşmez (çakışma önlenir).
+    // 3) Tehlike olsun olmasın, uygun boşluk varsa YILDIZ da eklenebilir (risk-ödül hissi).
+    let placedPickup = false;
+    let placedHazard = false;
+
+    // FIX (kritik denge): Pickup eşiği tetiklendiğinde bir sonraki eşiği MEVCUT konumdan
+    // ileriye ayarlıyoruz. Eskiden sadece "+= interval" yapılıyordu; eşik oyuncunun gerisinde
+    // birikince neredeyse her platform pickup tetikliyordu (%73!). Artık gerçekten "her X
+    // metrede bir" çıkıyorlar — ödül gibi hissettiren seyreklik.
+    const curMeter = (plat.x + plat.w) / CONFIG.meterPx;
     if (plat.x + plat.w >= magnetX) {
       const mx = Math.min(Math.max(magnetX, plat.x + 20), plat.x + plat.w - 20);
       world.magnets.push({x: mx, y: y - 46, r: 16, taken: false});
       generateSkyCluster(world.nextMagnetMeter);
       const jitter = (Math.random() * 2 - 1) * CONFIG.magnetIntervalJitter;
-      world.nextMagnetMeter += CONFIG.magnetInterval + jitter;
+      world.nextMagnetMeter = curMeter + CONFIG.magnetInterval + jitter;
+      placedPickup = true;
     } else if (plat.x + plat.w >= shieldX) {
       const sxp = Math.min(Math.max(shieldX, plat.x + 20), plat.x + plat.w - 20);
       world.shields.push({x: sxp, y: y - 46, r: 15, taken: false});
-      world.nextShieldMeter += CONFIG.shieldInterval;
-    } else if (Math.random() < 0.7) {
-      const sx = x + w * (0.35 + Math.random() * 0.3);
-      world.stars.push({x: sx, y: y - 50, r: 10, taken: false, kind: Math.random() < 0.15 ? 'bonus' : 'normal'});
+      world.nextShieldMeter = curMeter + CONFIG.shieldInterval;
+      placedPickup = true;
+    } else if (plat.x + plat.w >= doubleJumpX) {
+      const dxp = Math.min(Math.max(doubleJumpX, plat.x + 20), plat.x + plat.w - 20);
+      world.doubleJumps.push({x: dxp, y: y - 46, r: 15, taken: false});
+      world.nextDoubleJumpMeter = curMeter + CONFIG.doubleJumpInterval;
+      placedPickup = true;
+    } else if (plat.x + plat.w >= boostX) {
+      const bxp = Math.min(Math.max(boostX, plat.x + 20), plat.x + plat.w - 20);
+      world.boosts.push({x: bxp, y: y - 46, r: 15, taken: false});
+      world.nextBoostMeter = curMeter + CONFIG.boostInterval;
+      placedPickup = true;
     }
+
+    // Tehlikeler — sadece pickup yoksa VE platform normal (sabit) ise. Hareketli/kaybolan
+    // platformda diken/robot olması adaletsiz olurdu; onlar zaten kendi başlarına zorluk.
+    // YENİ: tehlike şansı mesafeyle artıyor (başta seyrek, ilerledikçe sıklaşır) ama
+    // hazardMult (görünmez zorluk + ritim) ile modüle ediliyor.
+    if (!placedPickup && type === 'normal') {
+      // Taban tehlike şansı: 0m'de ~%28, 800m'de ~%58'e kadar tırmanır.
+      const distProgress = Math.min(curMeter / 800, 1);
+      const baseHazardChance = (0.28 + distProgress * 0.30) * hazardMult;
+
+      const droneReady = world.nextDroneMeter * CONFIG.meterPx >= CONFIG.droneStartMeter * CONFIG.meterPx
+                         && plat.x + plat.w >= droneX && plat.w >= 110;
+      if (droneReady && Math.random() < Math.max(baseHazardChance, 0.4)) {
+        const patrolMin = plat.x + 26;
+        const patrolMax = plat.x + plat.w - 26;
+        world.drones.push({
+          platMinX: patrolMin, platMaxX: patrolMax,
+          x: (patrolMin + patrolMax) / 2, y: plat.y,
+          phase: Math.random() * Math.PI * 2, taken: false
+        });
+        const jitter = (Math.random() * 2 - 1) * CONFIG.droneIntervalJitter;
+        world.nextDroneMeter = curMeter + CONFIG.droneInterval + jitter;
+        placedHazard = true;
+      }
+
+      // Diken — drone konmadıysa değerlendirilir (aynı platformda ikisi birden olmasın).
+      if (!placedHazard && plat.x + plat.w >= spikeX && Math.random() < baseHazardChance) {
+        const spW = 26;
+        const spx = Math.min(Math.max(spikeX, plat.x + 24), plat.x + plat.w - 24 - spW);
+        world.spikes.push({x: spx, y: plat.y, w: spW, h: 18, taken: false});
+        const jitter = (Math.random() * 2 - 1) * CONFIG.spikeIntervalJitter;
+        world.nextSpikeMeter = curMeter + CONFIG.spikeInterval + jitter;
+        placedHazard = true;
+      }
+
+      // YENİ: Geniş/çift diken (400m+) — iki dikeni yan yana, daha uzun zıplama ister.
+      if (!placedHazard && curMeter >= CONFIG.wideSpikeStartMeter && plat.x + plat.w >= wideSpikeX
+          && plat.w >= 130 && Math.random() < baseHazardChance) {
+        const spW = 52; // geniş
+        const spx = Math.min(Math.max(wideSpikeX, plat.x + 28), plat.x + plat.w - 28 - spW);
+        world.spikes.push({x: spx, y: plat.y, w: spW, h: 20, taken: false, wide: true});
+        const jitter = (Math.random() * 2 - 1) * CONFIG.wideSpikeIntervalJitter;
+        world.nextWideSpikeMeter = curMeter + CONFIG.wideSpikeInterval + jitter;
+        placedHazard = true;
+      }
+
+      // YENİ: Zıplayan mini engel / mayın (180m+) — yerde yavaşça inip kalkar, zamanlama ister.
+      if (!placedHazard && curMeter >= CONFIG.hopperStartMeter && plat.x + plat.w >= hopperX
+          && plat.w >= 100 && Math.random() < baseHazardChance) {
+        const hx = Math.min(Math.max(hopperX, plat.x + 30), plat.x + plat.w - 30);
+        world.hoppers.push({
+          x: hx, baseY: plat.y, y: plat.y,
+          phase: Math.random() * Math.PI * 2
+        });
+        const jitter = (Math.random() * 2 - 1) * CONFIG.hopperIntervalJitter;
+        world.nextHopperMeter = curMeter + CONFIG.hopperInterval + jitter;
+        placedHazard = true;
+      }
+    }
+
+    // Yıldız — pickup yoksa eklenebilir. Tehlike olsa bile (dikenin/robotun kenarına)
+    // güvenli bir noktaya yerleştirerek risk-ödül dengesi kuruyoruz.
+    // FIX: yıldız artık platforma bağlanıyor (platIndex + yOffset). Böylece hareketli
+    // platformda yıldız da onunla birlikte hareket ediyor, havada asılı kalmıyor.
+    if (!placedPickup && Math.random() < 0.85) {
+      let sx = x + w * (0.35 + Math.random() * 0.3);
+      if (placedHazard) {
+        sx = Math.random() < 0.5 ? plat.x + 22 : plat.x + plat.w - 22;
+      }
+      world.stars.push({
+        x: sx, yOffset: -50, y: y - 50, r: 10, taken: false,
+        kind: Math.random() < 0.15 ? 'bonus' : 'normal',
+        plat: plat // referans: hareketli platformda birlikte hareket etsin
+      });
+    }
+
+    // YENİ: Erişilebilir gökyüzü yıldız yayı — tehlike/pickup olmayan, yeterince geniş sabit
+    // platformlarda belli olasılıkla. Zıplayarak toplanır; mıknatıs gelirse zaten çekilir.
+    if (!placedPickup && !placedHazard && type === 'normal' && plat.w >= 120
+        && Math.random() < CONFIG.skyArcChance) {
+      generateSkyArc(plat);
+    }
+
     world.nextPlatformX = x + w;
   }
 
   function generateSkyCluster(magnetMeter) {
     const startX = (magnetMeter + CONFIG.clusterStartOffset) * CONFIG.meterPx;
     const endX = (magnetMeter + CONFIG.clusterEndOffset) * CONFIG.meterPx;
-    for (let i = 0; i < CONFIG.clusterStarCount; i++) {
+    const span = endX - startX;
+    const count = CONFIG.clusterStarCount;
+    // YENİ: yıldızları geniş alana daha ferah dağıtıyoruz. Her yıldıza yatayda kendi
+    // "dilimini" verip içine küçük bir jitter ekliyoruz — böylece üst üste binmiyorlar.
+    const slot = span / count;
+    for (let i = 0; i < count; i++) {
+      const sx = startX + i * slot + slot * (0.2 + Math.random() * 0.6);
+      // Dikey: iki gevşek katmana yayıyoruz (üstte/altta), aynı x'te tek yıldız hissi.
+      const layer = i % 2;
+      const sy = 80 + layer * 90 + Math.random() * 70;
       world.skyStars.push({
-        x: startX + Math.random() * (endX - startX),
-        y: 70 + Math.random() * 190,
+        x: sx,
+        y: sy,
+        r: 9,
+        taken: false,
+        vx: 0, vy: 0,
+        phase: Math.random() * Math.PI * 2
+      });
+    }
+  }
+
+  // YENİ: Platform üstünde, zıplama kavisini (parabol) takip eden erişilebilir yıldız yayı.
+  // Mıknatıs kümesinden farklı olarak bunlar aşağıda, zıplayarak toplanabilecek yükseklikte.
+  function generateSkyArc(plat) {
+    const count = CONFIG.skyArcMinStars + Math.floor(Math.random() * (CONFIG.skyArcMaxStars - CONFIG.skyArcMinStars + 1));
+    const arcW = Math.min(plat.w - 40, 200);
+    const startX = plat.x + (plat.w - arcW) / 2;
+    const groundY = plat.y - 30;
+    for (let i = 0; i < count; i++) {
+      const t = count > 1 ? i / (count - 1) : 0.5;
+      // Parabol: uçlarda alçak, ortada tepe (zıplama kavisi hissi).
+      const arcY = groundY - Math.sin(t * Math.PI) * CONFIG.skyArcHeight;
+      world.skyStars.push({
+        x: startX + t * arcW,
+        y: arcY,
         r: 9,
         taken: false,
         vx: 0, vy: 0,
@@ -423,8 +1495,12 @@
   function generateAhead() {
     while (world.nextPlatformX < world.player.x + W * 2.5 + 800) {
       const lastY = world.platforms.length ? world.platforms[world.platforms.length - 1].y : H * 0.55;
-      const gap = 70 + Math.random() * 70;
-      const platW = 140 + Math.random() * 140;
+      const diffMod = getDifficultyMod(world.nextPlatformX / CONFIG.meterPx);
+      const rhythmMod = getRhythmMod(world.nextPlatformX);
+      const gapMult = diffMod.gapMult * rhythmMod.gapMult;
+      const widthMult = diffMod.widthMult * rhythmMod.widthMult;
+      const gap = (70 + Math.random() * 70) * gapMult;
+      const platW = (140 + Math.random() * 140) * widthMult;
       let newY = lastY + (Math.random() * 70 - 35);
       const minY = H * 0.42;
       const maxY = Math.min(H * 0.72, H - 140);
@@ -437,6 +1513,11 @@
     world.skyStars = world.skyStars.filter(s => s.x > cleanBound - 400);
     world.magnets = world.magnets.filter(m => m.x > cleanBound);
     world.shields = world.shields.filter(s => s.x > cleanBound);
+    world.spikes = world.spikes.filter(s => s.x > cleanBound);
+    world.drones = world.drones.filter(d => d.x > cleanBound - 300);
+    world.hoppers = world.hoppers.filter(h => h.x > cleanBound);
+    world.doubleJumps = world.doubleJumps.filter(d => d.x > cleanBound);
+    world.boosts = world.boosts.filter(b => b.x > cleanBound);
   }
 
   function generateClouds() {
@@ -472,6 +1553,11 @@
 
   function startJump(power) {
     const p = world.player;
+    if (world.tutorialTip) {
+      world.tutorialTip = false;
+      meta.tutorialSeen = true;
+      tutorialBanner.classList.add('hidden');
+    }
     if (p.onGround || world.coyoteTimer > 0) {
       p.vy = power;
       p.onGround = false;
@@ -479,59 +1565,261 @@
       world.jumpBufferTimer = 0;
       sfxJump();
     } else {
-      world.jumpBufferTimer = CONFIG.jumpBufferTime;
+      const speedBonus = Math.min((world.distance || 0) * CONFIG.speedRampPerMeter, CONFIG.maxSpeedBonus);
+      const speedRatio = Math.min(speedBonus / CONFIG.maxSpeedBonus, 1);
+      // FIX: update() içindeki dynamicBuffer ile aynı formül — tutarlı bir tolerans.
+      world.jumpBufferTimer = CONFIG.jumpBufferTime * (1 + speedRatio * 0.6);
       world.pendingJumpPower = power;
     }
   }
 
+  // YENİ: Biriktirilmiş acil zıplamayı tüketir. Zincir havadaki bir dokunuşla kurulduysa
+  // tetikleme dokunuşu platforma çok yakınken, hatta tam iniş anında bile çalışır —
+  // güvenlik zincirin kurulma şartında (havada ilk dokunuş) sağlanıyor.
+  function useEmergencyJump() {
+    const p = world.player;
+    if (!p.jumpCharges || p.jumpCharges <= 0) return false;
+    p.jumpCharges -= 1;
+    p.vy = CONFIG.emergencyJumpPower;
+    p.onGround = false;
+    // FIX: acil zıplama tetiklendiyse bekleyen normal zıplama buffer'ını iptal et —
+    // ikisi üst üste ateşlenip öngörülemez davranış yaratmasın.
+    world.jumpBufferTimer = 0;
+    p.invincible = Math.max(p.invincible, CONFIG.emergencyInvincibility);
+    sfxDoubleJump();
+    vibrate([0, 15, 20, 15]);
+    triggerShake(0.15, 5);
+    for (let i = 0; i < 14; i++) {
+      world.particles.push({
+        x: p.x, y: p.y + p.h,
+        vx: (Math.random() - 0.5) * 200, vy: Math.random() * 100,
+        life: 0.45, maxLife: 0.45, r: 3 + Math.random() * 2, color: '#9be7ff'
+      });
+    }
+    return true;
+  }
+
   function input(e) {
+    // FIX: HUD butonlarının üzerine denk gelen dokunuş/tıklama oyuna sızmasın.
+    const point = e.touches && e.touches.length ? e.touches[0] : e;
+    if (isOverHudButton(point.clientX, point.clientY)) return;
     e.preventDefault();
     ensureAudio();
-    if (!running) return;
+    if (!running || paused) return;
     touchStart = performance.now();
     isCharging = true;
   }
+  let lastTapTime = 0;
   function inputEnd(e) {
-    if (!running) return;
+    if (!running || paused) return;
     if (!isCharging) return;
     isCharging = false;
     const held = (performance.now() - touchStart) / 1000;
     const t = Math.min(held / CONFIG.jumpChargeTime, 1);
     const power = CONFIG.jumpMin + (CONFIG.jumpMax - CONFIG.jumpMin) * t;
+
+    // FIX (alçakta tetiklenme): zincir SADECE havadaki dokunuşla kurulur (yer zıplamaları
+    // stok yakmaz), ama zincir kurulduysa tetikleme dokunuşu platforma çok yakınken —
+    // tam iniş anında bile — çalışır. Böylece alçak irtifada da acil zıplama yapılabilir.
+    const wasAirborne = !world.player.onGround && world.coyoteTimer <= 0;
+    const now = performance.now();
+    const chainArmed = lastTapTime > 0 && (now - lastTapTime) < CONFIG.doubleTapWindow * 1000;
+    if (chainArmed && useEmergencyJump()) {
+      lastTapTime = 0;
+      return;
+    }
+    lastTapTime = wasAirborne ? now : 0;
+
     startJump(power);
+  }
+  function inputCancel(e) {
+    isCharging = false;
   }
 
   canvas.addEventListener('touchstart', input, {passive: false});
   canvas.addEventListener('touchend', inputEnd, {passive: false});
+  canvas.addEventListener('touchcancel', inputCancel, {passive: false});
   canvas.addEventListener('mousedown', input);
   canvas.addEventListener('mouseup', inputEnd);
+  canvas.addEventListener('mouseleave', inputCancel);
 
-  function collectStar(gained) {
+  function addScorePopup(x, y, text, color) {
+    world.scorePopups.push({x, y, text, color: color || '#FFD93D', life: 0.8, maxLife: 0.8});
+  }
+
+  function collectStar(baseAmount, x, y, isBonus) {
+    world.combo += 1;
+    world.comboTimer = CONFIG.comboWindow;
+    const level = Math.min(Math.floor(world.combo / CONFIG.comboStarsPerLevel), CONFIG.comboMaxMultiplier - 1);
+    world.comboMultiplier = 1 + level;
+    const gained = baseAmount * world.comboMultiplier;
     world.score += gained;
     meta.totalStars += gained;
+    meta.stats.totalStarsCollected = (meta.stats.totalStarsCollected || 0) + 1;
+    if (world.comboMultiplier > (meta.stats.maxCombo || 1)) meta.stats.maxCombo = world.comboMultiplier;
+    addScorePopup(x, y, '+' + gained + (world.comboMultiplier > 1 ? ' x' + world.comboMultiplier : ''), isBonus ? '#FF9F1C' : '#FFD93D');
+    if (world.comboMultiplier > 1 && world.combo % CONFIG.comboStarsPerLevel === 0) {
+      sfxCombo();
+      vibrate(15);
+    }
+  }
+
+  // YENİ: Respawn için GÜVENLİ (sağlam zemin veren) bir platform seçer. Kaybolmuş,
+  // kaybolmakta olan (geri sayımdaki) ve hareketli platformları eler — böylece oyuncu
+  // kaybolan sarı platforma geri ışınlanıp üst üste düşmez.
+  function findSafeRespawnPlatform(px) {
+    const behind = world.platforms.filter(pl =>
+      pl.x + pl.w <= px && !pl.gone &&
+      !(pl.type === 'crumbling' && pl.crumbleTimer > 0) &&
+      pl.type !== 'moving'
+    );
+    if (behind.length) return behind[behind.length - 1];
+    // Geriye güvenli platform yoksa: ileride/altındaki en yakın sağlam normal platformu ara.
+    const anyNormal = world.platforms.filter(pl =>
+      !pl.gone && pl.type === 'normal' && !(pl.type === 'crumbling' && pl.crumbleTimer > 0)
+    );
+    if (anyNormal.length) {
+      // px'e en yakın olanı seç.
+      anyNormal.sort((a, b) => Math.abs((a.x + a.w / 2) - px) - Math.abs((b.x + b.w / 2) - px));
+      return anyNormal[0];
+    }
+    return world.platforms[0];
+  }
+
+  // Tehlikeye çarpma (düşme veya diken/drone teması) — kalkan/dokunulmazlık mantığı ortak.
+  function hitHazard(reasonText, knockback) {
+    const p = world.player;
+    if (p.invincible > 0) return;
+    // Ölüm bölgesini kaydet (görünmez zorluk ayarı için).
+    const bucket = deathBucket(world.distance);
+    meta.stats.deathZones[bucket] = (meta.stats.deathZones[bucket] || 0) + 1;
+
+    if (p.hasShield) {
+      p.hasShield = false;
+      p.invincible = CONFIG.invincibilityDuration;
+      triggerShake(0.2, 6);
+      world.flashTime = 0.25;
+      world.flashColor = 'rgba(120,200,255,0.3)';
+      sfxShield();
+      vibrate(20);
+      meta.stats.shieldSaves = (meta.stats.shieldSaves || 0) + 1;
+      world.respawnGrace = CONFIG.respawnGraceTime;
+      if (knockback) { p.vy = knockback; }
+      return;
+    }
+    world.lives -= 1;
+    p.invincible = CONFIG.invincibilityDuration;
+    triggerShake(0.35, 12);
+    world.flashTime = 0.3;
+    world.flashColor = 'rgba(255,60,60,0.4)';
+    sfxHurt();
+    vibrate([0, 40, 30, 40]);
+    world.lastDeathReason = reasonText;
+    if (world.lives <= 0) {
+      endGame();
+      return;
+    }
+    if (knockback) {
+      p.vy = knockback;
+    } else {
+      const respawnPlat = findSafeRespawnPlatform(p.x);
+      p.x = respawnPlat.x + respawnPlat.w * 0.5;
+      p.y = respawnPlat.y - p.h;
+      p.vy = 0;
+    }
+    // FIX: her respawn sonrası kısa bir nefes payı — oyuncu tepki verip zıplayabilsin diye.
+    world.respawnGrace = CONFIG.respawnGraceTime;
   }
 
   function update(dt) {
     const p = world.player;
     world.time += dt;
+    meta.stats.totalPlayTimeSec = (meta.stats.totalPlayTimeSec || 0) + dt;
+
+    if (p.invincible > 0) p.invincible -= dt;
+
+    if (world.combo > 0) {
+      world.comboTimer -= dt;
+      if (world.comboTimer <= 0) {
+        // Kombo cezası yumuşatıldı: tamamen sıfırlamak yerine yarıya indiriyoruz.
+        world.combo = Math.floor(world.combo / 2);
+        const level = Math.min(Math.floor(world.combo / CONFIG.comboStarsPerLevel), CONFIG.comboMaxMultiplier - 1);
+        world.comboMultiplier = world.combo > 0 ? 1 + level : 1;
+        world.comboTimer = world.combo > 0 ? CONFIG.comboWindow : 0;
+      }
+    }
+
+    for (const sp of world.scorePopups) {
+      sp.y -= 30 * dt;
+      sp.life -= dt;
+    }
+    world.scorePopups = world.scorePopups.filter(sp => sp.life > 0);
+
+    world.autosaveTimer -= dt;
+    if (world.autosaveTimer <= 0) {
+      world.autosaveTimer = CONFIG.autosaveInterval;
+      saveMeta();
+    }
 
     const speedBonus = Math.min(world.distance * CONFIG.speedRampPerMeter, CONFIG.maxSpeedBonus);
-    const currentRunSpeed = CONFIG.runSpeed + speedBonus;
+    let currentRunSpeed = CONFIG.runSpeed + speedBonus;
+    if (world.boostActive) {
+      world.boostTimer -= dt;
+      currentRunSpeed += CONFIG.boostSpeedAdd;
+      if (world.boostTimer <= 0) world.boostActive = false;
+    }
+
+    // FIX: respawn nefes payı sırasında müzik temposu aşırı yavaşlamasın diye
+    // müziğe grace uygulanmamış "gerçek" hızı geçiyoruz.
+    const musicSpeed = currentRunSpeed;
+
+    if (world.respawnGrace > 0) {
+      world.respawnGrace -= dt;
+      currentRunSpeed *= CONFIG.respawnGraceSpeedMult;
+      // FIX: grace sırasında yavaşlarken bir dikenin/robotun üstüne denk gelip grace'in
+      // faydasını kaybetmeyelim — kısa dokunulmazlık garanti ediyoruz.
+      if (p.invincible < world.respawnGrace) p.invincible = world.respawnGrace;
+      if (world.respawnGrace < 0) world.respawnGrace = 0;
+    }
+
+    updateMusic(musicSpeed);
 
     p.x += currentRunSpeed * dt;
     p.vy += CONFIG.gravity * dt;
     p.y += p.vy * dt;
 
+    // Ghost kaydı (mevcut koşu ilerledikçe periyodik örnekleme).
+    world.ghostSampleTimer -= dt;
+    if (world.ghostSampleTimer <= 0) {
+      world.ghostSampleTimer = CONFIG.ghostSampleInterval;
+      if (world.ghostSamples.length < CONFIG.ghostMaxSamples) {
+        world.ghostSamples.push({t: world.time, x: p.x, y: p.y});
+      }
+    }
+    // Ghost oynatma: en iyi koşunun hayaleti aynı zaman damgasında nerede olduğunu gösterir.
+    if (world.ghostPlayback) {
+      const samples = world.ghostPlayback.samples;
+      while (world.ghostIndex < samples.length - 1 && samples[world.ghostIndex + 1].t <= world.time) {
+        world.ghostIndex++;
+      }
+    }
+
     const speedFactor = Math.min(Math.abs(p.vy) / 700, 0.35);
     p.squash += ((p.onGround ? -speedFactor * 0.6 : speedFactor) - p.squash) * Math.min(dt * 14, 1);
 
+    // Kamera zoom efekti: hızlı zıplarken hafif uzaklaş, inişte hafif yakınlaş.
+    const targetScale = p.onGround ? 1 : (1 - Math.min(Math.abs(p.vy) / 900, 1) * 0.035 + (p.vy > 300 ? 0.02 : 0));
+    world.camScale += (targetScale - world.camScale) * Math.min(dt * 6, 1);
+
+    const trailColor = world.comboMultiplier >= 4 ? '#FF4DFF' : world.comboMultiplier === 3 ? '#4DD9FF' : world.comboMultiplier === 2 ? '#FFEA4D' : '#FFEA9E';
     if (Math.random() < 0.6 && world.particles.length < CONFIG.maxParticles) {
       world.particles.push({
         x: p.x - p.w * 0.3, y: p.y + p.h * 0.6,
         vx: -currentRunSpeed * 0.3 + (Math.random() - 0.5) * 40,
         vy: (Math.random() - 0.5) * 40,
         life: 0.5, maxLife: 0.5,
-        r: 3 + Math.random() * 3
+        r: 3 + Math.random() * 3,
+        color: trailColor
       });
     }
     for (const par of world.particles) {
@@ -543,21 +1831,64 @@
 
     world.camX = p.x - W * CONFIG.cameraOffsetX;
 
-    const wasOnGround = p.onGround;
-    p.onGround = false;
+    // YENİ: hareketli platformları güncelle (dikey salınım) ve kaybolan platformların
+    // sayaçlarını işle.
     for (const plat of world.platforms) {
-      const withinX = p.x + p.w * 0.5 > plat.x + 4 && p.x - p.w * 0.5 < plat.x + plat.w - 4;
-      const feetY = p.y + p.h;
-      if (withinX && p.vy >= 0 && feetY >= plat.y - 6 && feetY <= plat.y + plat.h + 26) {
-        p.y = plat.y - p.h;
-        if (!p.onGround) p.squash = -0.5;
-        p.vy = 0;
-        p.onGround = true;
+      if (plat.type === 'moving') {
+        plat.y = plat.baseY + Math.sin(world.time * CONFIG.movingPlatformSpeed + plat.phase) * CONFIG.movingPlatformAmp;
+      }
+      if (plat.type === 'crumbling') {
+        if (plat.crumbleTimer > 0) {
+          plat.crumbleTimer -= dt;
+          if (plat.crumbleTimer <= 0) {
+            plat.gone = true;
+            plat.respawnTimer = CONFIG.crumbleRespawnTime;
+          }
+        } else if (plat.gone) {
+          plat.respawnTimer -= dt;
+          if (plat.respawnTimer <= 0) { plat.gone = false; plat.crumbleTimer = -1; }
+        }
       }
     }
 
+    // YENİ: hareketli platforma bağlı yıldızlar platformla birlikte hareket etsin
+    // (kaybolan platform kaybolunca üstündeki yıldız da toplanamaz konuma gelmesin diye
+    // gizlenmez; sadece pozisyon senkronu yapıyoruz).
+    for (const s of world.stars) {
+      if (s.taken || !s.plat) continue;
+      if (s.plat.type === 'moving') s.y = s.plat.y + s.yOffset;
+    }
+
+    const wasOnGround = p.onGround;
+    p.onGround = false;
+    for (const plat of world.platforms) {
+      if (plat.gone) continue; // kaybolmuş platform zemin sağlamaz
+      // FIX: kenar marjı 4px'ten 2px'e düşürüldü — yüksek hızda topun platform üstünde
+      // "sayılma" penceresi daha geniş, erken düşme algısı azalıyor.
+      const withinX = p.x + p.w * 0.5 > plat.x + 2 && p.x - p.w * 0.5 < plat.x + plat.w - 2;
+      const feetY = p.y + p.h;
+      if (withinX && p.vy >= 0 && feetY >= plat.y - 6 && feetY <= plat.y + plat.h + 26) {
+        p.y = plat.y - p.h;
+        if (!wasOnGround) p.squash = -0.5;
+        p.vy = 0;
+        p.onGround = true;
+        // Kaybolan platforma ilk basışta geri sayımı başlat.
+        if (plat.type === 'crumbling' && plat.crumbleTimer < 0) {
+          plat.crumbleTimer = CONFIG.crumbleDelay;
+        }
+      }
+    }
+
+    // FIX: Yüksek hızda coyote time yetersiz kalıp oyuncu zamanında basmasına rağmen
+    // düşüyordu. Hız arttıkça coyote time'ı orantılı büyütüyoruz (sabit +0.05 yerine
+    // hıza göre ölçeklenen bir pay), böylece platform kenarında "havada" kalınan süre
+    // ile tepki verme penceresi dengeli kalıyor.
+    const speedRatio2 = Math.min(speedBonus / CONFIG.maxSpeedBonus, 1);
+    const dynamicCoyote = CONFIG.coyoteTime * (1 + speedRatio2 * 0.9);
+    const dynamicBuffer = CONFIG.jumpBufferTime * (1 + speedRatio2 * 0.6);
+
     if (wasOnGround && !p.onGround) {
-      world.coyoteTimer = CONFIG.coyoteTime;
+      world.coyoteTimer = dynamicCoyote;
     } else if (world.coyoteTimer > 0) {
       world.coyoteTimer -= dt;
     }
@@ -579,8 +1910,9 @@
       const dx = p.x - s.x, dy = (p.y + p.h / 2) - s.y;
       if (Math.sqrt(dx * dx + dy * dy) < 34) {
         s.taken = true;
-        collectStar(s.kind === 'bonus' ? 50 : 10);
-        if (s.kind === 'bonus') sfxBonusStar(); else sfxStar();
+        const isBonus = s.kind === 'bonus';
+        collectStar(isBonus ? 50 : 10, s.x, s.y, isBonus);
+        if (isBonus) sfxBonusStar(); else sfxStar();
       }
     }
 
@@ -592,6 +1924,7 @@
         world.magnetActive = true;
         world.magnetTimer = CONFIG.magnetDuration;
         sfxMagnet();
+        vibrate(25);
       }
     }
 
@@ -602,6 +1935,103 @@
         sh.taken = true;
         p.hasShield = true;
         sfxShield();
+        vibrate(25);
+      }
+    }
+
+    for (const dj of world.doubleJumps) {
+      if (dj.taken) continue;
+      const dx = p.x - dj.x, dy = (p.y + p.h / 2) - dj.y;
+      if (Math.sqrt(dx * dx + dy * dy) < 30) {
+        dj.taken = true;
+        p.jumpCharges = Math.min((p.jumpCharges || 0) + 1, CONFIG.jumpChargeMax);
+        sfxDoubleJump();
+        vibrate(20);
+        // YENİ: ilk toplamada tek seferlik kullanım ipucu — oyuncu nasıl tetikleyeceğini bilsin.
+        if (!meta.emergencyJumpTipSeen) {
+          meta.emergencyJumpTipSeen = true;
+          tutorialBanner.textContent = '🪽 Havadayken art arda 2 kez dokun = acil zıplama! (yerdeki zıplamalar stok harcamaz)';
+          tutorialBanner.classList.remove('hidden');
+          clearTimeout(world.emergencyTipTimer);
+          world.emergencyTipTimer = setTimeout(() => tutorialBanner.classList.add('hidden'), 4000);
+          saveMeta();
+        }
+      }
+    }
+
+    for (const b of world.boosts) {
+      if (b.taken) continue;
+      const dx = p.x - b.x, dy = (p.y + p.h / 2) - b.y;
+      if (Math.sqrt(dx * dx + dy * dy) < 30) {
+        b.taken = true;
+        world.boostActive = true;
+        world.boostTimer = CONFIG.boostDuration;
+        sfxBoost();
+        vibrate(25);
+      }
+    }
+
+    // Diken teması: aşağıdan atlarken hafif tolerans bırak, üstüne düşerse hasar ver.
+    for (const sp of world.spikes) {
+      if (sp.taken) continue;
+      const withinX = p.x + p.w * 0.35 > sp.x && p.x - p.w * 0.35 < sp.x + sp.w;
+      const feetY = p.y + p.h;
+      if (withinX && feetY >= sp.y - sp.h && feetY <= sp.y + 10 && p.invincible <= 0) {
+        hitHazard('Bir dikene bastın (' + world.distance + 'm\'de).', -420);
+        if (world.lives <= 0 || !running) break;
+      }
+    }
+
+    // Drone düşmanları platform sınırları içinde ileri-geri devriye geziyor.
+    // YENİ: üstten-basma (stomp) mekaniği — robotun KAFASINA düşersen (aşağı inerken,
+    // ayakların gövdenin üst kısmına denk gelir) robot ölür ve seni yukarı sektirir.
+    // Yandan/aynı hizadan çarparsan can gider (klasik platformer kuralı).
+    for (const d of world.drones) {
+      if (d.taken) continue;
+      const range = (d.platMaxX - d.platMinX) / 2;
+      d.x = d.platMinX + range + Math.sin(world.time * CONFIG.droneSpeed + d.phase) * range;
+      const hw = CONFIG.droneHitWidth / 2;
+      const withinX = p.x + p.w * 0.35 > d.x - hw && p.x - p.w * 0.35 < d.x + hw;
+      const feetY = p.y + p.h;
+      const bodyTop = d.y - CONFIG.droneHazardHeight; // robotun tepe noktası
+      if (!withinX) continue;
+
+      // Stomp: aşağı doğru hareket ediyorsan ve ayakların robotun üst bölgesindeyse.
+      const isStomp = p.vy > 120 && feetY >= bodyTop - 4 && feetY <= bodyTop + CONFIG.droneHazardHeight * 0.6;
+      if (isStomp) {
+        d.taken = true;
+        p.vy = CONFIG.stompBounce; // yukarı sektir
+        world.score += CONFIG.stompReward;
+        meta.totalStars += CONFIG.stompReward;
+        addScorePopup(d.x, bodyTop - 10, '+' + CONFIG.stompReward + ' 🤖', '#7BE0FF');
+        triggerShake(0.12, 5);
+        sfxDoubleJump();
+        vibrate(20);
+        for (let i = 0; i < 12; i++) {
+          world.particles.push({
+            x: d.x, y: bodyTop,
+            vx: (Math.random() - 0.5) * 180, vy: (Math.random() - 0.5) * 120,
+            life: 0.4, maxLife: 0.4, r: 2 + Math.random() * 3, color: '#9be7ff'
+          });
+        }
+        continue;
+      }
+
+      // Stomp değilse ve gövdeyle temas varsa = hasar.
+      if (feetY >= bodyTop && feetY <= d.y + 10 && p.invincible <= 0) {
+        hitHazard('Bir robota çarptın (' + world.distance + 'm\'de).', -420);
+        if (world.lives <= 0 || !running) break;
+      }
+    }
+
+    // YENİ: Zıplayan mayın — sinüs ile inip kalkar. Temas = hasar. Zamanlamayla üstünden geç.
+    for (const h of world.hoppers) {
+      const hop = Math.abs(Math.sin(world.time * CONFIG.hopperSpeed + h.phase));
+      h.y = h.baseY - hop * CONFIG.hopperAmp;
+      const dx = p.x - h.x, dy = (p.y + p.h * 0.6) - h.y;
+      if (Math.sqrt(dx * dx + dy * dy) < CONFIG.hopperHitR + p.w * 0.3 && p.invincible <= 0) {
+        hitHazard('Bir mayına çarptın (' + world.distance + 'm\'de).', -420);
+        if (world.lives <= 0 || !running) break;
       }
     }
 
@@ -610,7 +2040,7 @@
       const dx = p.x - s.x, dy = (p.y + p.h / 2) - s.y;
       if (Math.sqrt(dx * dx + dy * dy) < 28) {
         s.taken = true;
-        collectStar(10);
+        collectStar(10, s.x, s.y, false);
         sfxStar();
       }
     }
@@ -629,37 +2059,27 @@
           s.y += (dy / dist) * pull;
           if (dist < 26) {
             s.taken = true;
-            collectStar(10);
+            collectStar(10, s.x, s.y, false);
           }
         }
       }
     }
     world.skyStars = world.skyStars.filter(s => !s.taken && s.x > world.camX - 500);
 
+    if (!running) return;
+
     if (p.y > H + 150) {
-      if (p.hasShield) {
-        p.hasShield = false;
-        world.shakeTime = 0.2;
-        world.shakeMag = 6;
-        world.flashTime = 0.25;
-        world.flashColor = 'rgba(120,200,255,0.3)';
-        sfxShield();
-      } else {
-        world.lives -= 1;
-        world.shakeTime = 0.35;
-        world.shakeMag = 12;
-        world.flashTime = 0.3;
-        world.flashColor = 'rgba(255,60,60,0.4)';
-        sfxHurt();
-      }
-      if (world.lives <= 0) {
-        endGame();
-        return;
-      } else {
-        const respawnPlat = world.platforms.find(pl => pl.x > p.x - 50) || world.platforms[0];
-        p.x = respawnPlat.x + 20;
+      if (p.invincible > 0) {
+        const respawnPlat = findSafeRespawnPlatform(p.x);
+        p.x = respawnPlat.x + respawnPlat.w * 0.5;
         p.y = respawnPlat.y - p.h;
         p.vy = 0;
+        // FIX: dokunulmazlık sırasında tekrar boşluğa düşüp sessizce geri ışınlanma da
+        // aynı "art arda düşme" hissini yaratıyordu — buraya da nefes payı ekliyoruz.
+        world.respawnGrace = CONFIG.respawnGraceTime;
+      } else {
+        hitHazard('Bir boşluğa düştün (' + world.distance + 'm\'de).', null);
+        if (!running) return;
       }
     }
 
@@ -669,13 +2089,42 @@
     updateWeather(dt);
 
     world.distance = Math.max(world.distance, Math.floor(p.x / CONFIG.meterPx));
+    if (world.distance > meta.bestDistance) meta.bestDistance = world.distance;
+
+    // Bölge geçişi bildirimi.
+    const biome = getBiome(world.distance);
+    if (world.currentBiome !== biome.id) {
+      world.currentBiome = biome.id;
+      if (world.distance > 5) {
+        biomeBanner.textContent = biome.icon + ' ' + biome.name + ' bölgesi!';
+        biomeBanner.classList.remove('hidden');
+        clearTimeout(world.biomeBannerTimer);
+        world.biomeBannerTimer = setTimeout(() => biomeBanner.classList.add('hidden'), 2200);
+      }
+    }
+
     generateAhead();
     generateClouds();
+    checkAchievements();
 
     scoreEl.textContent = world.score;
     livesEl.textContent = world.lives;
     distEl.textContent = world.distance;
-    magnetBanner.classList.toggle('hidden', !world.magnetActive);
+    chargesEl.textContent = p.jumpCharges || 0;
+
+    if (world.magnetActive) {
+      magnetBanner.classList.remove('hidden');
+      magnetBanner.textContent = '🧲 MIKNATIS AKTİF! ' + Math.max(world.magnetTimer, 0).toFixed(1) + 's';
+    } else {
+      magnetBanner.classList.add('hidden');
+    }
+
+    if (world.comboMultiplier > 1) {
+      comboBanner.classList.remove('hidden');
+      comboBanner.textContent = '🔥 KOMBO x' + world.comboMultiplier;
+    } else {
+      comboBanner.classList.add('hidden');
+    }
   }
 
   function updateWeather(dt) {
@@ -704,8 +2153,15 @@
     }
     ctx.save();
     ctx.translate(shakeX, shakeY);
+    // Kamera zoom efekti + ekran oranına göre görüş ölçeği (viewScale). Dar ekranda
+    // viewScale < 1 olur ve dünya küçülüp daha fazla alan görünür.
+    const totalScale = (world.camScale || 1) * viewScale;
+    ctx.translate(W / 2, H / 2);
+    ctx.scale(totalScale, totalScale);
+    ctx.translate(-W / 2, -H / 2);
 
-    drawSky();
+    const biome = getBiome(world.distance);
+    drawSky(biome);
 
     ctx.save();
     for (const c of world.clouds) {
@@ -715,21 +2171,23 @@
     }
     ctx.restore();
 
-    ctx.fillStyle = 'rgba(120,140,180,0.35)';
+    ctx.fillStyle = biome.hill1;
     drawHillLayer(world.camX * 0.15, H * 0.62, 220, 90);
-    ctx.fillStyle = meta.selectedWeather === 'night' ? 'rgba(40,60,90,0.5)' : 'rgba(70,150,120,0.55)';
+    ctx.fillStyle = meta.selectedWeather === 'night' ? 'rgba(40,60,90,0.5)' : biome.hill2;
     drawHillLayer(world.camX * 0.4, H * 0.72, 180, 70);
-    ctx.fillStyle = meta.selectedWeather === 'night' ? 'rgba(30,40,60,0.4)' : 'rgba(46,204,113,0.35)';
+    ctx.fillStyle = meta.selectedWeather === 'night' ? 'rgba(30,40,60,0.4)' : biome.hill3;
     drawHillLayer(world.camX * 0.7, H * 0.85, 140, 55);
 
     ctx.save();
     ctx.translate(-world.camX, 0);
 
+    // KALDIRILDI: hayalet (👻 rekor) gösterimi kafa karıştırdığı için çizilmiyor.
+
     for (const par of world.particles) {
       const a = Math.max(par.life / par.maxLife, 0);
       ctx.globalAlpha = a * 0.8;
       const g = ctx.createRadialGradient(par.x, par.y, 0, par.x, par.y, par.r * 2);
-      g.addColorStop(0, '#FFEA9E');
+      g.addColorStop(0, par.color || '#FFEA9E');
       g.addColorStop(1, 'rgba(255,159,28,0)');
       ctx.fillStyle = g;
       ctx.beginPath(); ctx.arc(par.x, par.y, par.r * 2, 0, Math.PI * 2); ctx.fill();
@@ -737,28 +2195,72 @@
     ctx.globalAlpha = 1;
 
     for (const plat of world.platforms) {
+      if (plat.gone) continue; // kaybolan platform görünmez
+      ctx.save();
+      // Kaybolan platform: geri sayım sırasında yanıp söner ve titrer.
+      if (plat.type === 'crumbling' && plat.crumbleTimer > 0) {
+        const blink = 0.5 + Math.sin(world.time * 30) * 0.4;
+        ctx.globalAlpha = blink;
+        ctx.translate((Math.random() - 0.5) * 2, 0);
+      }
       ctx.fillStyle = 'rgba(20,40,20,0.18)';
       roundRect(plat.x + 4, plat.y + plat.h, plat.w, 10, 6);
       ctx.fill();
       const body = ctx.createLinearGradient(0, plat.y, 0, plat.y + plat.h);
-      body.addColorStop(0, '#8B5A2B');
-      body.addColorStop(1, '#5C3A19');
+      if (plat.type === 'crumbling') {
+        body.addColorStop(0, '#9B7B4B'); body.addColorStop(1, '#6B4A29');
+      } else if (plat.type === 'moving') {
+        body.addColorStop(0, '#5B7B9B'); body.addColorStop(1, '#3A4A6B');
+      } else {
+        body.addColorStop(0, '#8B5A2B'); body.addColorStop(1, '#5C3A19');
+      }
       ctx.fillStyle = body;
       roundRect(plat.x, plat.y + 8, plat.w, plat.h - 8, 6);
       ctx.fill();
-      const grassTop = meta.selectedWeather === 'snow' ? '#FFFFFF' : (meta.selectedWeather === 'night' ? '#1e5c3a' : '#3FDD7B');
+      let grassTop, grassBottom;
+      if (plat.type === 'moving') {
+        grassTop = '#7EC8E8'; grassBottom = '#4A9FD9';
+      } else if (plat.type === 'crumbling') {
+        grassTop = '#E8C77E'; grassBottom = '#D9A441';
+      } else {
+        grassTop = meta.selectedWeather === 'snow' ? '#FFFFFF' : (meta.selectedWeather === 'night' ? '#1e5c3a' : biome.groundTop);
+        grassBottom = meta.selectedWeather === 'snow' ? '#DCEBF5' : biome.groundBottom;
+      }
       const grass = ctx.createLinearGradient(0, plat.y, 0, plat.y + 12);
       grass.addColorStop(0, grassTop);
-      grass.addColorStop(1, meta.selectedWeather === 'snow' ? '#DCEBF5' : '#2ECC71');
+      grass.addColorStop(1, grassBottom);
       ctx.fillStyle = grass;
       roundRect(plat.x, plat.y, plat.w, 12, 6);
       ctx.fill();
+      // Hareketli platform üstünde küçük çift ok işareti (dikey hareket ipucu).
+      if (plat.type === 'moving') {
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.font = '12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('↕', plat.x + plat.w / 2, plat.y + 6);
+      }
+      ctx.restore();
     }
 
+    // Dikenler
+    for (const sp of world.spikes) {
+      if (sp.taken) continue;
+      drawSpike(sp);
+    }
+
+    // YENİ: Zıplayan mayınlar
+    for (const h of world.hoppers) {
+      drawHopper(h);
+    }
+
+    const isSnow = meta.selectedWeather === 'snow';
     for (const s of world.stars) {
       if (s.taken) continue;
       const bob = Math.sin(world.time * 3 + s.x) * 4;
-      drawStar(s.x, s.y + bob, s.kind === 'bonus' ? 15 : 10, s.kind === 'bonus' ? '#FF9F1C' : '#FFD93D');
+      const starColor = s.kind === 'bonus' ? (isSnow ? '#FF6B00' : '#FF9F1C') : (isSnow ? '#FFC400' : '#FFD93D');
+      const starOutline = isSnow ? 'rgba(90,55,0,0.65)' : null;
+      drawStar(s.x, s.y + bob, s.kind === 'bonus' ? 15 : 10, starColor, starOutline);
     }
 
     for (const s of world.skyStars) {
@@ -777,8 +2279,31 @@
       if (sh.taken) continue;
       drawIcon(sh.x, sh.y, '🛡️', 28, world.time);
     }
+    for (const dj of world.doubleJumps) {
+      if (dj.taken) continue;
+      drawIcon(dj.x, dj.y, '🪽', 28, world.time);
+    }
+    for (const b of world.boosts) {
+      if (b.taken) continue;
+      drawIcon(b.x, b.y, '⚡', 28, world.time);
+    }
+    for (const d of world.drones) {
+      if (d.taken) continue;
+      drawDrone(d);
+    }
 
     drawPlayer();
+    drawChargeBar();
+
+    for (const sp of world.scorePopups) {
+      const a = Math.max(sp.life / sp.maxLife, 0);
+      ctx.globalAlpha = a;
+      ctx.font = '700 15px -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = sp.color;
+      ctx.fillText(sp.text, sp.x, sp.y);
+      ctx.globalAlpha = 1;
+    }
 
     ctx.restore();
 
@@ -796,9 +2321,99 @@
     }
   }
 
-  function drawSky() {
+  function drawSpike(sp) {
+    ctx.save();
+    ctx.fillStyle = sp.wide ? '#E0A6A6' : '#D6D9E0';
+    ctx.strokeStyle = sp.wide ? '#B06B6B' : '#8A8FA0';
+    ctx.lineWidth = 1.5;
+    const teeth = sp.wide ? 6 : 3; // geniş diken daha çok dişli
+    const toothW = sp.w / teeth;
+    ctx.beginPath();
+    for (let i = 0; i < teeth; i++) {
+      const bx = sp.x + i * toothW;
+      ctx.moveTo(bx, sp.y);
+      ctx.lineTo(bx + toothW / 2, sp.y - sp.h);
+      ctx.lineTo(bx + toothW, sp.y);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // YENİ: Zıplayan mayın çizimi — kırmızı-siyah top, kısa dikenli.
+  function drawHopper(h) {
+    ctx.save();
+    const glow = ctx.createRadialGradient(h.x, h.y, 2, h.x, h.y, CONFIG.hopperHitR * 1.6);
+    glow.addColorStop(0, 'rgba(255,80,80,0.4)');
+    glow.addColorStop(1, 'rgba(255,80,80,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(h.x, h.y, CONFIG.hopperHitR * 1.6, 0, Math.PI * 2); ctx.fill();
+    // kısa dikenler
+    ctx.strokeStyle = '#3a0d0d'; ctx.lineWidth = 3;
+    for (let i = 0; i < 8; i++) {
+      const a = (Math.PI * 2 * i) / 8;
+      ctx.beginPath();
+      ctx.moveTo(h.x + Math.cos(a) * CONFIG.hopperHitR, h.y + Math.sin(a) * CONFIG.hopperHitR);
+      ctx.lineTo(h.x + Math.cos(a) * (CONFIG.hopperHitR + 5), h.y + Math.sin(a) * (CONFIG.hopperHitR + 5));
+      ctx.stroke();
+    }
+    const g = ctx.createRadialGradient(h.x - 4, h.y - 4, 2, h.x, h.y, CONFIG.hopperHitR);
+    g.addColorStop(0, '#8a2a2a'); g.addColorStop(1, '#2a0a0a');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(h.x, h.y, CONFIG.hopperHitR, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawDrone(d) {
+    // Zemin hizasında devriye gezen robot — dikenle aynı yükseklikte, üzerinden zıplayarak geçilir.
+    const bodyY = d.y - 16;
+    ctx.save();
+    const glow = ctx.createRadialGradient(d.x, bodyY, 2, d.x, bodyY, 24);
+    glow.addColorStop(0, 'rgba(255,80,80,0.45)');
+    glow.addColorStop(1, 'rgba(255,80,80,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(d.x, bodyY, 24, 0, Math.PI * 2); ctx.fill();
+    ctx.font = '24px serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.save();
+    ctx.scale(Math.sin(world.time * CONFIG.droneSpeed + d.phase) >= 0 ? 1 : -1, 1);
+    ctx.fillText('🤖', Math.sin(world.time * CONFIG.droneSpeed + d.phase) >= 0 ? d.x : -d.x, bodyY);
+    ctx.restore();
+    ctx.restore();
+  }
+
+  function drawChargeBar() {
+    if (!isCharging) return;
+    const p = world.player;
+    // FIX: bar sadece yerdeyken görünür — havadaki dokunuşlar (özellikle acil zıplama için
+    // yapılan hızlı çift dokunuşlar) bar doldurma hissi vermesin.
+    if (!p.onGround && world.coyoteTimer <= 0) return;
+    const held = (performance.now() - touchStart) / 1000;
+    const t = Math.min(held / CONFIG.jumpChargeTime, 1);
+    const barW = 46, barH = 7;
+    const bx = p.x - barW / 2, by = p.y - p.h * 0.9 - 14;
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    roundRect(bx, by, barW, barH, 4);
+    ctx.fill();
+    const fillColor = t >= 1 ? '#FF4D4D' : '#FFD93D';
+    ctx.fillStyle = fillColor;
+    roundRect(bx, by, barW * t, barH, 4);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawSky(biome) {
     const weather = meta.selectedWeather;
-    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    // viewScale < 1 iken dünya küçüldüğü için gökyüzünü ekranı taşacak kadar geniş çiziyoruz
+    // (kenarlarda boşluk kalmasın). marginX/Y ölçeğe göre gereken taşma payı.
+    const inv = 1 / viewScale;
+    const marginX = W * (inv - 1) / 2 + 4;
+    const marginY = H * (inv - 1) / 2 + 4;
+    const skyH = H;
+    const sky = ctx.createLinearGradient(0, -marginY, 0, H + marginY);
     if (weather === 'night') {
       sky.addColorStop(0, '#0d1330');
       sky.addColorStop(0.6, '#1b2550');
@@ -812,13 +2427,13 @@
       sky.addColorStop(0.6, '#e6f3fa');
       sky.addColorStop(1, '#fbfeff');
     } else {
-      const huShift = Math.sin(world.time * 0.02) * 8;
+      const huShift = Math.sin(world.time * 0.02) * 8 + (biome ? biome.dayHue : 0);
       sky.addColorStop(0, 'hsl(' + (215 + huShift) + ', 70%, 62%)');
       sky.addColorStop(0.55, 'hsl(' + (195 + huShift) + ', 75%, 74%)');
-      sky.addColorStop(1, 'hsl(45, 90%, 88%)');
+      sky.addColorStop(1, 'hsl(' + (45 + huShift * 0.3) + ', 90%, 88%)');
     }
     ctx.fillStyle = sky;
-    ctx.fillRect(0, 0, W, H);
+    ctx.fillRect(-marginX, -marginY, W + marginX * 2, H + marginY * 2);
 
     if (weather === 'night') {
       for (const st of world.weatherParticles) {
@@ -935,6 +2550,10 @@
 
   function drawPlayer() {
     const p = world.player;
+    if (p.invincible > 0 && Math.floor(p.invincible * 10) % 2 === 0) {
+      return;
+    }
+
     const cx = p.x, cy = p.y + p.h / 2;
     const stretch = p.squash;
     const rx = (p.w / 2) * (1 - Math.max(stretch, -0.4) * 0.5);
@@ -1010,6 +2629,16 @@
       ctx.stroke();
     }
 
+    if (p.jumpCharges > 0) {
+      ctx.font = (rx * 0.8) + 'px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🪽', 0, -ry * 1.5);
+      ctx.font = '700 12px -apple-system, sans-serif';
+      ctx.fillStyle = '#fff';
+      ctx.fillText(String(p.jumpCharges), rx * 0.55, -ry * 1.7);
+    }
+
     ctx.restore();
   }
 
@@ -1048,50 +2677,152 @@
   }
 
   function loop(ts) {
-    if (!running) return;
-    let dt = (ts - lastTime) / 1000;
-    lastTime = ts;
-    if (dt > CONFIG.maxDt) dt = CONFIG.maxDt;
-    update(dt);
-    draw();
-    requestAnimationFrame(loop);
+    if (!running || paused) return;
+    try {
+      let dt = (ts - lastTime) / 1000;
+      lastTime = ts;
+      if (dt > CONFIG.maxDt) dt = CONFIG.maxDt;
+      update(dt);
+      if (!running) { draw(); return; }
+      draw();
+      requestAnimationFrame(loop);
+    } catch (err) {
+      console.error('Oyun döngüsü hatası yakalandı:', err);
+      handleCrash();
+    }
+  }
+
+  function handleCrash() {
+    running = false;
+    try { saveMeta(); } catch (e) { }
+    panel.classList.remove('hidden');
+    mainMenu.classList.remove('hidden');
+    shopMenu.classList.add('hidden');
+    pauseMenu.classList.add('hidden');
+    achMenu.classList.add('hidden');
+    statsMenu.classList.add('hidden');
+    powerMenu.classList.add('hidden');
+    howMenu.classList.add('hidden');
+    settingsMenu.classList.add('hidden');
+    hudEl.classList.add('hidden');
+    magnetBanner.classList.add('hidden');
+    comboBanner.classList.add('hidden');
+    tutorialBanner.classList.add('hidden');
+    biomeBanner.classList.add('hidden');
+    shareBtn.classList.add('hidden');
+    mainMenu.querySelector('h1').textContent = '⚠️ Bir sorun oluştu';
+    mainMenu.querySelector('p').innerHTML =
+      'Oyun beklenmeyen bir hatayla karşılaştı, ama ilerlemen kaydedildi.<br>Tekrar deneyebilirsin.';
+    startBtn.textContent = 'TEKRAR DENE';
+    refreshCurrencyUI();
   }
 
   function endGame() {
     running = false;
     sfxGameOver();
+    vibrate([0, 60, 40, 60, 40, 60]);
 
-    const newDistRecord = world.distance > meta.bestDistance;
-    const newScoreRecord = world.score > meta.bestScore;
+    const newDistRecord = world.distance > world.startBestDistance;
+    const newScoreRecord = world.score > world.startBestScore;
     if (newDistRecord) meta.bestDistance = world.distance;
     if (newScoreRecord) meta.bestScore = world.score;
+
+    meta.stats.totalDistanceRun = (meta.stats.totalDistanceRun || 0) + world.distance;
+
+    // Mükemmel koşu bonusu: hiç can kaybetmeden bitirildiyse ekstra ödül.
+    let perfectBonus = 0;
+    const isPerfect = world.lives === 3;
+    if (isPerfect) {
+      meta.stats.perfectRuns = (meta.stats.perfectRuns || 0) + 1;
+      perfectBonus = Math.round(world.score * 0.2);
+      if (perfectBonus > 0) {
+        meta.totalStars += perfectBonus;
+        world.score += perfectBonus;
+      }
+    }
+
+    // Hayalet kaydı: bu koşu önceki rekoru geçtiyse yeni hayalet olarak sakla.
+    if ((newDistRecord || newScoreRecord) && world.ghostSamples.length > 4) {
+      meta.ghost = {distance: world.distance, score: world.score, samples: world.ghostSamples};
+    }
 
     saveMeta();
     refreshCurrencyUI();
     renderShop();
+    renderAchievements();
     panel.classList.remove('hidden');
     mainMenu.classList.remove('hidden');
     shopMenu.classList.add('hidden');
+    pauseMenu.classList.add('hidden');
+    achMenu.classList.add('hidden');
+    statsMenu.classList.add('hidden');
+    powerMenu.classList.add('hidden');
+    howMenu.classList.add('hidden');
+    settingsMenu.classList.add('hidden');
+    hudEl.classList.add('hidden');
+    magnetBanner.classList.add('hidden');
+    comboBanner.classList.add('hidden');
+    tutorialBanner.classList.add('hidden');
+    biomeBanner.classList.add('hidden');
     mainMenu.querySelector('h1').textContent = '💀 Oyun Bitti';
     const recordLine = (newDistRecord || newScoreRecord) ? '<br><b style="color:#FFD93D;">🎉 Yeni rekor!</b>' : '';
+    const perfectLine = isPerfect ? '<br><b style="color:#7BE0FF;">🌟 Mükemmel Koşu! +' + perfectBonus + ' 💰 bonus</b>' : '';
+    const deathLine = world.lastDeathReason ? '<br><span style="opacity:0.75;font-size:13px;">' + world.lastDeathReason + '</span>' : '';
     mainMenu.querySelector('p').innerHTML =
-      'Skor: <b>' + world.score + '</b> &nbsp;|&nbsp; Mesafe: <b>' + world.distance + 'm</b><br>Toplanan yıldızlar mağazaya eklendi!' + recordLine;
+      'Skor: <b>' + world.score + '</b> &nbsp;|&nbsp; Mesafe: <b>' + world.distance + 'm</b><br>Toplanan yıldızlar mağazaya eklendi!' + recordLine + perfectLine + deathLine;
     startBtn.textContent = 'TEKRAR OYNA';
+    shareBtn.classList.remove('hidden');
+    gameOverPowerBtn.classList.remove('hidden');
+    checkAchievements();
   }
 
   startBtn.addEventListener('click', () => {
     panel.classList.add('hidden');
+    shareBtn.classList.add('hidden');
+    gameOverPowerBtn.classList.add('hidden');
+    paused = false;
     resetWorld();
+    lastTapTime = 0;
+    hudEl.classList.remove('hidden');
     running = true;
     lastTime = performance.now();
+    musicNextTime = 0;
+    musicStep = 0;
     requestAnimationFrame(loop);
   });
 
-  tuningEl.textContent =
-    'speed:' + CONFIG.runSpeed + '+' + CONFIG.maxSpeedBonus + 'px/s magnet@' + CONFIG.magnetFirstMeter + 'm+' + CONFIG.magnetInterval + 'm±' + CONFIG.magnetIntervalJitter + ' dur:' + CONFIG.magnetDuration + 's coyote:' + CONFIG.coyoteTime + 's buf:' + CONFIG.jumpBufferTime + 's';
+  // YENİ: Android donanım geri tuşu — oyun sırasında oyunu duraklatır, menülerde geri gider.
+  // history API ile yakalıyoruz (tarayıcının sayfadan çıkmasını engeller).
+  try {
+    history.pushState({lum: true}, '');
+    window.addEventListener('popstate', () => {
+      // Her zaman bir sonraki geri tuşu için state'i geri koy.
+      history.pushState({lum: true}, '');
+      if (running && !paused) {
+        togglePause();
+      } else {
+        // Açık bir alt menü varsa ana menüye dön.
+        const subMenus = [shopMenu, powerMenu, achMenu, statsMenu, settingsMenu, howMenu];
+        const openSub = subMenus.find(m => !m.classList.contains('hidden'));
+        if (openSub) {
+          openSub.classList.add('hidden');
+          mainMenu.classList.remove('hidden');
+          saveMeta();
+        }
+      }
+    });
+  } catch (e) { }
+
+  // YENİ: mümkünse ekranı yatay/dikey karışmasına karşı dikey (portrait) kilitle.
+  try {
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock('portrait').catch(() => {});
+    }
+  } catch (e) { }
 
   loadMeta();
 })();
+
 </script>
 </body>
 </html>
